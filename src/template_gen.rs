@@ -3,29 +3,30 @@ use iac_forge::{IacAttribute, IacResource, to_kebab_case};
 /// Generate `_helpers.tpl` that delegates to pleme-lib.
 #[must_use]
 pub fn generate_helpers_tpl(resource: &IacResource) -> String {
-    let chart_name = to_kebab_case(&resource.name);
-    format!(
-        r#"{{{{/*
-Helpers for {chart_name} — delegates to pleme-lib.
-*/}}}}
+    let n = to_kebab_case(&resource.name);
+    let mut s = String::new();
 
-{{{{- define "{chart_name}.name" -}}}}
-{{{{- include "pleme-lib.name" . -}}}}
-{{{{- end -}}}}
+    s.push_str("{{/*\n");
+    s.push_str(&format!("Helpers for {n} — delegates to pleme-lib.\n"));
+    s.push_str("*/}}\n\n");
 
-{{{{- define "{chart_name}.fullname" -}}}}
-{{{{- include "pleme-lib.fullname" . -}}}}
-{{{{- end -}}}}
+    s.push_str(&format!("{{{{- define \"{n}.name\" -}}}}\n"));
+    s.push_str("{{- include \"pleme-lib.name\" . -}}\n");
+    s.push_str("{{- end -}}\n\n");
 
-{{{{- define "{chart_name}.labels" -}}}}
-{{{{- include "pleme-lib.labels" . -}}}}
-{{{{- end -}}}}
+    s.push_str(&format!("{{{{- define \"{n}.fullname\" -}}}}\n"));
+    s.push_str("{{- include \"pleme-lib.fullname\" . -}}\n");
+    s.push_str("{{- end -}}\n\n");
 
-{{{{- define "{chart_name}.selectorLabels" -}}}}
-{{{{- include "pleme-lib.selectorLabels" . -}}}}
-{{{{- end -}}}}
-"#
-    )
+    s.push_str(&format!("{{{{- define \"{n}.labels\" -}}}}\n"));
+    s.push_str("{{- include \"pleme-lib.labels\" . -}}\n");
+    s.push_str("{{- end -}}\n\n");
+
+    s.push_str(&format!("{{{{- define \"{n}.selectorLabels\" -}}}}\n"));
+    s.push_str("{{- include \"pleme-lib.selectorLabels\" . -}}\n");
+    s.push_str("{{- end -}}\n");
+
+    s
 }
 
 /// Generate `deployment.yaml` delegating to pleme-lib.
@@ -71,20 +72,16 @@ pub fn generate_configmap_template(resource: &IacResource) -> String {
         return String::new();
     }
 
-    let chart_name = to_kebab_case(&resource.name);
+    let n = to_kebab_case(&resource.name);
     let mut lines = Vec::new();
 
-    lines.push(format!(
-        "{{{{- if .Values.config }}}}}"
-    ));
+    lines.push("{{- if .Values.config }}".into());
     lines.push("apiVersion: v1".into());
     lines.push("kind: ConfigMap".into());
     lines.push("metadata:".into());
+    lines.push(format!("  name: {{{{{{ include \"{n}.fullname\" . }}}}}}"));
     lines.push(format!(
-        "  name: {{{{{{ include \"{chart_name}.fullname\" . }}}}}}"
-    ));
-    lines.push(format!(
-        "  labels:\n    {{{{- include \"{chart_name}.labels\" . | nindent 4 }}}}}}"
+        "  labels:\n    {{{{- include \"{n}.labels\" . | nindent 4 }}}}"
     ));
     lines.push("data:".into());
 
@@ -115,18 +112,16 @@ pub fn generate_secret_template(resource: &IacResource) -> String {
         return String::new();
     }
 
-    let chart_name = to_kebab_case(&resource.name);
+    let n = to_kebab_case(&resource.name);
     let mut lines = Vec::new();
 
-    lines.push(format!("{{{{- if .Values.secrets }}}}}}"));
+    lines.push("{{- if .Values.secrets }}".into());
     lines.push("apiVersion: v1".into());
     lines.push("kind: Secret".into());
     lines.push("metadata:".into());
+    lines.push(format!("  name: {{{{{{ include \"{n}.fullname\" . }}}}}}"));
     lines.push(format!(
-        "  name: {{{{{{ include \"{chart_name}.fullname\" . }}}}}}"
-    ));
-    lines.push(format!(
-        "  labels:\n    {{{{- include \"{chart_name}.labels\" . | nindent 4 }}}}}}"
+        "  labels:\n    {{{{- include \"{n}.labels\" . | nindent 4 }}}}"
     ));
     lines.push("type: Opaque".into());
     lines.push("stringData:".into());
