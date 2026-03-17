@@ -41,7 +41,7 @@ pub fn generate_values_schema(resource: &IacResource) -> String {
     properties.insert("image".into(), image_schema());
     properties.insert("replicaCount".into(), integer_with_default(1));
     properties.insert("resources".into(), resources_schema());
-    properties.insert("monitoring".into(), enabled_toggle_schema());
+    properties.insert("monitoring".into(), monitoring_schema());
     properties.insert("networkPolicy".into(), enabled_toggle_schema());
     properties.insert("pdb".into(), enabled_toggle_schema());
     properties.insert("autoscaling".into(), enabled_toggle_schema());
@@ -122,6 +122,20 @@ fn resources_schema() -> Value {
     props.insert("requests".into(), object_schema(req_props));
     props.insert("limits".into(), object_schema(lim_props));
 
+    object_schema(props)
+}
+
+/// JSON Schema for the `monitoring` block with alerting, interval, port, and path.
+fn monitoring_schema() -> Value {
+    let mut alerting_props = Map::new();
+    alerting_props.insert("enabled".into(), bool_schema());
+
+    let mut props = Map::new();
+    props.insert("enabled".into(), bool_schema());
+    props.insert("alerting".into(), object_schema(alerting_props));
+    props.insert("interval".into(), string_schema());
+    props.insert("port".into(), string_schema());
+    props.insert("path".into(), string_schema());
     object_schema(props)
 }
 
@@ -232,6 +246,24 @@ mod tests {
         assert!(res["limits"].is_object());
         assert!(res["requests"]["properties"]["cpu"].is_object());
         assert!(res["limits"]["properties"]["memory"].is_object());
+    }
+
+    #[test]
+    fn monitoring_schema_has_alerting_and_fields() {
+        let resource = test_resource("test_res");
+        let schema_str = generate_values_schema(&resource);
+        let schema: Value = serde_json::from_str(&schema_str).unwrap();
+
+        let monitoring = &schema["properties"]["monitoring"]["properties"];
+        assert!(monitoring["enabled"].is_object(), "missing monitoring.enabled");
+        assert!(monitoring["alerting"].is_object(), "missing monitoring.alerting");
+        assert!(monitoring["interval"].is_object(), "missing monitoring.interval");
+        assert!(monitoring["port"].is_object(), "missing monitoring.port");
+        assert!(monitoring["path"].is_object(), "missing monitoring.path");
+
+        // Alerting has its own enabled field.
+        let alerting = &monitoring["alerting"]["properties"];
+        assert!(alerting["enabled"].is_object(), "missing alerting.enabled");
     }
 
     #[test]

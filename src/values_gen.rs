@@ -4,7 +4,8 @@ use iac_forge::{IacResource, IacType};
 
 use crate::config::HelmConfig;
 use crate::model::{
-    ImageConfig, ResourceQuantity, ResourcesConfig, ToggleConfig, ValuesYaml,
+    AlertingConfig, ImageConfig, MonitoringConfig, ResourceQuantity, ResourcesConfig,
+    ToggleConfig, ValuesYaml,
 };
 use crate::traits::{AttributeFilter, DefaultAttributeFilter};
 
@@ -73,7 +74,13 @@ pub fn build_values_yaml(resource: &IacResource, config: &HelmConfig) -> ValuesY
                 memory: config.memory_limit.clone(),
             },
         },
-        monitoring: ToggleConfig { enabled: config.monitoring_enabled },
+        monitoring: MonitoringConfig {
+            enabled: config.monitoring_enabled,
+            alerting: AlertingConfig { enabled: false },
+            interval: "30s".into(),
+            port: "metrics".into(),
+            path: "/metrics".into(),
+        },
         network_policy: ToggleConfig { enabled: config.network_policy_enabled },
         pdb: ToggleConfig { enabled: config.pdb_enabled },
         autoscaling: ToggleConfig { enabled: config.autoscaling_enabled },
@@ -188,6 +195,27 @@ mod tests {
         );
         assert!(!values.monitoring.enabled);
         assert!(values.pdb.enabled);
+    }
+
+    #[test]
+    fn monitoring_has_alerting_and_fields() {
+        let resource = test_resource("test");
+        let values = build_values_yaml(&resource, &HelmConfig::default());
+        assert!(values.monitoring.enabled);
+        assert!(!values.monitoring.alerting.enabled);
+        assert_eq!(values.monitoring.interval, "30s");
+        assert_eq!(values.monitoring.port, "metrics");
+        assert_eq!(values.monitoring.path, "/metrics");
+    }
+
+    #[test]
+    fn monitoring_yaml_contains_alerting() {
+        let resource = test_resource("test");
+        let yaml = generate_values_yaml(&resource);
+        assert!(yaml.contains("alerting:"));
+        assert!(yaml.contains("interval:"));
+        assert!(yaml.contains("port:"));
+        assert!(yaml.contains("path:"));
     }
 
     #[test]

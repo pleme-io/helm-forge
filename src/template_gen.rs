@@ -79,6 +79,54 @@ pub fn generate_podmonitor_template() -> String {
     pleme_lib_delegate("podmonitor")
 }
 
+/// Generate `prometheusrule.yaml` for alerting rules.
+///
+/// Produces a `PrometheusRule` resource gated on `.Values.monitoring.alerting.enabled`.
+#[must_use]
+pub fn generate_prometheusrule_template(resource: &IacResource) -> String {
+    let n = to_kebab_case(&resource.name);
+    let mut lines = Vec::new();
+
+    lines.push("{{- if .Values.monitoring.alerting.enabled }}".into());
+    lines.push("apiVersion: monitoring.coreos.com/v1".into());
+    lines.push("kind: PrometheusRule".into());
+    lines.push("metadata:".into());
+    lines.push(format!(
+        "  name: {{{{ include \"{n}.fullname\" . }}}}"
+    ));
+    lines.push("  labels:".into());
+    lines.push(format!(
+        "    {{{{- include \"{n}.labels\" . | nindent 4 }}}}"
+    ));
+    lines.push("spec:".into());
+    lines.push("  groups:".into());
+    lines.push(format!(
+        "    - name: {{{{ include \"{n}.fullname\" . }}}}.availability"
+    ));
+    lines.push("      interval: 30s".into());
+    lines.push("      rules:".into());
+    lines.push(format!(
+        "        - alert: {{{{ include \"{n}.fullname\" . | title | replace \"-\" \"\" }}}}Down"
+    ));
+    lines.push(format!(
+        "          expr: up{{{{job=\"{{{{ include \"{n}.fullname\" . }}}}\"}}}} == 0"
+    ));
+    lines.push("          for: 2m".into());
+    lines.push("          labels:".into());
+    lines.push("            severity: critical".into());
+    lines.push("          annotations:".into());
+    lines.push(format!(
+        "            summary: \"{{{{ include \"{n}.fullname\" . }}}} is down\""
+    ));
+    lines.push(format!(
+        "            description: \"{{{{ include \"{n}.fullname\" . }}}} has been down for more than 2 minutes.\""
+    ));
+    lines.push("{{- end }}".into());
+    lines.push(String::new());
+
+    lines.join("\n")
+}
+
 /// Generate `configmap.yaml` for non-sensitive resource attributes.
 #[must_use]
 pub fn generate_configmap_template(resource: &IacResource) -> String {
@@ -284,6 +332,35 @@ mod tests {
         let resource = test_resource_with_type("all_config", "plain_val", IacType::String);
         let tpl = generate_secret_template(&resource);
         assert!(tpl.is_empty());
+    }
+
+    #[test]
+    fn prometheusrule_has_valid_structure() {
+        let resource = test_resource("static_secret");
+        let tpl = generate_prometheusrule_template(&resource);
+
+        assert!(tpl.contains("{{- if .Values.monitoring.alerting.enabled }}"));
+        assert!(tpl.contains("apiVersion: monitoring.coreos.com/v1"));
+        assert!(tpl.contains("kind: PrometheusRule"));
+        assert!(tpl.contains("{{ include \"static-secret.fullname\" . }}"));
+        assert!(tpl.contains("{{- include \"static-secret.labels\" . | nindent 4 }}"));
+        assert!(tpl.contains(".availability"));
+        assert!(tpl.contains("interval: 30s"));
+        assert!(tpl.contains("severity: critical"));
+        assert!(tpl.contains("Down"));
+        assert!(tpl.contains("for: 2m"));
+        assert!(tpl.contains("{{- end }}"));
+        // No triple braces
+        assert!(!tpl.contains("{{{"), "triple open braces in prometheusrule");
+        assert!(!tpl.contains("}}}"), "triple close braces in prometheusrule");
+    }
+
+    #[test]
+    fn prometheusrule_uses_chart_name() {
+        let resource = test_resource("my_service");
+        let tpl = generate_prometheusrule_template(&resource);
+        assert!(tpl.contains("my-service.fullname"));
+        assert!(tpl.contains("my-service.labels"));
     }
 
     #[test]

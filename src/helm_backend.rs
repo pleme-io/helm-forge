@@ -5,7 +5,7 @@ use iac_forge::ir::{IacDataSource, IacProvider, IacResource};
 use iac_forge::IacForgeError;
 
 use crate::config::HelmConfig;
-use crate::naming::HelmNaming;
+use crate::naming::{HelmNaming, validate_dns1123};
 use crate::traits::{
     AttributeFilter, ChartGenerator, DefaultAttributeFilter, DefaultChartGenerator,
     DefaultSchemaGenerator, DefaultTemplateGenerator, DefaultTestFileGenerator,
@@ -196,7 +196,10 @@ impl Backend for HelmBackend {
         resource: &IacResource,
         provider: &IacProvider,
     ) -> Result<Vec<GeneratedArtifact>, IacForgeError> {
-        let chart_name = iac_forge::to_kebab_case(&resource.name);
+        let dns_result = validate_dns1123(&resource.name).map_err(|e| {
+            IacForgeError::ValidationError(format!("invalid resource name: {e}"))
+        })?;
+        let chart_name = dns_result.name().to_string();
         let base = format!("charts/{chart_name}");
 
         let mut artifacts = Vec::new();
@@ -258,6 +261,12 @@ impl Backend for HelmBackend {
                 kind: ArtifactKind::Resource,
             });
         }
+
+        artifacts.push(GeneratedArtifact {
+            path: format!("{base}/templates/prometheusrule.yaml"),
+            content: self.template_gen.prometheusrule(resource),
+            kind: ArtifactKind::Resource,
+        });
         _stage = GenerationStage::Templates;
 
         // Stage: Tests
@@ -354,6 +363,7 @@ mod tests {
         assert!(paths.contains(&"charts/static-secret/templates/pdb.yaml"));
         assert!(paths.contains(&"charts/static-secret/templates/hpa.yaml"));
         assert!(paths.contains(&"charts/static-secret/templates/podmonitor.yaml"));
+        assert!(paths.contains(&"charts/static-secret/templates/prometheusrule.yaml"));
         assert!(paths.contains(&"charts/static-secret/templates/configmap.yaml"));
         assert!(paths.contains(&"charts/static-secret/templates/secret.yaml"));
         assert!(paths.contains(&"charts/static-secret/tests/deployment_test.yaml"));

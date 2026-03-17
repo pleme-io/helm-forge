@@ -60,7 +60,7 @@ pub struct ValuesYaml {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secrets: Option<BTreeMap<String, String>>,
     pub resources: ResourcesConfig,
-    pub monitoring: ToggleConfig,
+    pub monitoring: MonitoringConfig,
     pub network_policy: ToggleConfig,
     pub pdb: ToggleConfig,
     pub autoscaling: ToggleConfig,
@@ -87,6 +87,22 @@ pub struct ResourcesConfig {
 pub struct ResourceQuantity {
     pub cpu: String,
     pub memory: String,
+}
+
+/// Monitoring configuration with alerting sub-section.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct MonitoringConfig {
+    pub enabled: bool,
+    pub alerting: AlertingConfig,
+    pub interval: String,
+    pub port: String,
+    pub path: String,
+}
+
+/// Alerting sub-configuration for PrometheusRule generation.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AlertingConfig {
+    pub enabled: bool,
 }
 
 /// Simple `{ enabled: bool }` toggle for features.
@@ -156,6 +172,16 @@ mod tests {
         assert!(!yaml.contains("annotations"));
     }
 
+    fn default_monitoring() -> MonitoringConfig {
+        MonitoringConfig {
+            enabled: true,
+            alerting: AlertingConfig { enabled: false },
+            interval: "30s".into(),
+            port: "metrics".into(),
+            path: "/metrics".into(),
+        }
+    }
+
     #[test]
     fn values_yaml_round_trips() {
         let values = ValuesYaml {
@@ -179,7 +205,7 @@ mod tests {
                     memory: "256Mi".into(),
                 },
             },
-            monitoring: ToggleConfig::on(),
+            monitoring: default_monitoring(),
             network_policy: ToggleConfig::on(),
             pdb: ToggleConfig::off(),
             autoscaling: ToggleConfig::off(),
@@ -205,7 +231,7 @@ mod tests {
                 requests: ResourceQuantity { cpu: "50m".into(), memory: "64Mi".into() },
                 limits: ResourceQuantity { cpu: "200m".into(), memory: "256Mi".into() },
             },
-            monitoring: ToggleConfig::on(),
+            monitoring: default_monitoring(),
             network_policy: ToggleConfig::on(),
             pdb: ToggleConfig::off(),
             autoscaling: ToggleConfig::off(),

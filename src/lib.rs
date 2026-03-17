@@ -41,7 +41,7 @@ pub mod values_gen;
 // Core types
 pub use config::HelmConfig;
 pub use helm_backend::{HelmBackend, HelmBackendBuilder};
-pub use naming::HelmNaming;
+pub use naming::{Dns1123Result, HelmNaming, validate_dns1123};
 
 // Generator traits (for mockability and DI)
 pub use traits::{
@@ -54,8 +54,8 @@ pub use traits::{
 // Central data structures (serde-based YAML models + Helm template AST)
 pub use helm_ast::{HelmNode, PipeFilter, Trim, render as render_helm};
 pub use model::{
-    ChartDependency, ChartYaml, ImageConfig, ResourceQuantity, ResourcesConfig, ToggleConfig,
-    ValuesYaml,
+    AlertingConfig, ChartDependency, ChartYaml, ImageConfig, MonitoringConfig, ResourceQuantity,
+    ResourcesConfig, ToggleConfig, ValuesYaml,
 };
 
 // Standalone generator functions (direct use without traits)
@@ -64,8 +64,9 @@ pub use schema_gen::generate_values_schema;
 pub use template_gen::{
     generate_configmap_template, generate_deployment_template, generate_helpers_tpl,
     generate_hpa_template, generate_networkpolicy_template, generate_pdb_template,
-    generate_podmonitor_template, generate_secret_template, generate_service_template,
-    generate_serviceaccount_template, generate_servicemonitor_template,
+    generate_podmonitor_template, generate_prometheusrule_template, generate_secret_template,
+    generate_service_template, generate_serviceaccount_template,
+    generate_servicemonitor_template,
 };
 pub use test_gen::generate_deployment_test;
 pub use type_map::iac_type_to_json_schema;

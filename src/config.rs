@@ -65,6 +65,72 @@ impl Default for HelmConfig {
     }
 }
 
+impl HelmConfig {
+    /// Validate the configuration and return a list of error messages.
+    ///
+    /// Returns an empty vector when the config is valid.
+    ///
+    /// Checks:
+    /// - `lib_chart_version` is not empty
+    /// - `default_chart_version` is not empty
+    /// - `cpu_request` and `memory_request` look like valid Kubernetes quantities
+    /// - `replica_count` > 0
+    #[must_use]
+    pub fn validate(&self) -> Vec<String> {
+        let mut errors = Vec::new();
+
+        if self.lib_chart_version.is_empty() {
+            errors.push("lib_chart_version must not be empty".into());
+        }
+        if self.default_chart_version.is_empty() {
+            errors.push("default_chart_version must not be empty".into());
+        }
+        if self.replica_count == 0 {
+            errors.push("replica_count must be greater than 0".into());
+        }
+        if !is_k8s_quantity(&self.cpu_request) {
+            errors.push(format!(
+                "cpu_request '{}' does not look like a valid Kubernetes quantity",
+                self.cpu_request
+            ));
+        }
+        if !is_k8s_quantity(&self.memory_request) {
+            errors.push(format!(
+                "memory_request '{}' does not look like a valid Kubernetes quantity",
+                self.memory_request
+            ));
+        }
+
+        errors
+    }
+}
+
+/// Basic check for Kubernetes resource quantities.
+///
+/// Accepts patterns like `100m`, `0.5`, `128Mi`, `1Gi`, `2e3`, `500`, etc.
+/// This is a heuristic, not a full parser — it covers common usage.
+fn is_k8s_quantity(s: &str) -> bool {
+    if s.is_empty() {
+        return false;
+    }
+    // Kubernetes quantities: digits (optionally with decimal/exponent), followed by
+    // an optional suffix: m | k | M | G | T | P | E | Ki | Mi | Gi | Ti | Pi | Ei
+    let suffixes = [
+        "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", // binary
+        "m", "k", "M", "G", "T", "P", "E",  // decimal (m = milli)
+    ];
+
+    for suffix in &suffixes {
+        if let Some(prefix) = s.strip_suffix(suffix) {
+            return !prefix.is_empty() && prefix.bytes().all(|b| b.is_ascii_digit() || b == b'.');
+        }
+    }
+
+    // Plain number (no suffix): e.g., "0.5", "100", "2e3"
+    s.bytes()
+        .all(|b| b.is_ascii_digit() || b == b'.' || b == b'e' || b == b'E')
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -93,5 +159,91 @@ mod tests {
         let cfg2 = cfg.clone();
         assert_eq!(cfg.lib_chart_name, cfg2.lib_chart_name);
         assert_eq!(cfg.replica_count, cfg2.replica_count);
+    }
+
+    // ── Validation tests ─────────────────────────────────────────────────
+
+    #[test]
+    fn default_config_is_valid() {
+        let cfg = HelmConfig::default();
+        assert!(cfg.validate().is_empty());
+    }
+
+    #[test]
+    fn validate_empty_lib_chart_version() {
+        let cfg = HelmConfig {
+            lib_chart_version: String::new(),
+            ..HelmConfig::default()
+        };
+        let errors = cfg.validate();
+        assert!(errors.iter().any(|e| e.contains("lib_chart_version")));
+    }
+
+    #[test]
+    fn validate_empty_default_chart_version() {
+        let cfg = HelmConfig {
+            default_chart_version: String::new(),
+            ..HelmConfig::default()
+        };
+        let errors = cfg.validate();
+        assert!(errors.iter().any(|e| e.contains("default_chart_version")));
+    }
+
+    #[test]
+    fn validate_zero_replica_count() {
+        let cfg = HelmConfig {
+            replica_count: 0,
+            ..HelmConfig::default()
+        };
+        let errors = cfg.validate();
+        assert!(errors.iter().any(|e| e.contains("replica_count")));
+    }
+
+    #[test]
+    fn validate_invalid_cpu_request() {
+        let cfg = HelmConfig {
+            cpu_request: "not-a-quantity".into(),
+            ..HelmConfig::default()
+        };
+        let errors = cfg.validate();
+        assert!(errors.iter().any(|e| e.contains("cpu_request")));
+    }
+
+    #[test]
+    fn validate_invalid_memory_request() {
+        let cfg = HelmConfig {
+            memory_request: "".into(),
+            ..HelmConfig::default()
+        };
+        let errors = cfg.validate();
+        assert!(errors.iter().any(|e| e.contains("memory_request")));
+    }
+
+    #[test]
+    fn validate_valid_quantities() {
+        for q in &["50m", "100m", "0.5", "1", "128Mi", "1Gi", "256Ki"] {
+            assert!(is_k8s_quantity(q), "{q} should be a valid quantity");
+        }
+    }
+
+    #[test]
+    fn validate_invalid_quantities() {
+        for q in &["", "abc", "Mi", "-5m", "not-valid"] {
+            assert!(!is_k8s_quantity(q), "{q} should not be a valid quantity");
+        }
+    }
+
+    #[test]
+    fn validate_multiple_errors_at_once() {
+        let cfg = HelmConfig {
+            lib_chart_version: String::new(),
+            default_chart_version: String::new(),
+            replica_count: 0,
+            cpu_request: "bad".into(),
+            memory_request: "bad".into(),
+            ..HelmConfig::default()
+        };
+        let errors = cfg.validate();
+        assert_eq!(errors.len(), 5);
     }
 }

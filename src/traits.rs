@@ -68,6 +68,8 @@ pub trait TemplateGenerator: std::fmt::Debug + Send + Sync {
     fn configmap(&self, resource: &IacResource) -> String;
     /// Secret template (empty string if no secret attributes).
     fn secret(&self, resource: &IacResource) -> String;
+    /// PrometheusRule template for alerting rules.
+    fn prometheusrule(&self, resource: &IacResource) -> String;
 }
 
 /// Generates helm-unittest test files.
@@ -140,6 +142,10 @@ impl TemplateGenerator for DefaultTemplateGenerator {
 
     fn secret(&self, resource: &IacResource) -> String {
         crate::template_gen::generate_secret_template(resource)
+    }
+
+    fn prometheusrule(&self, resource: &IacResource) -> String {
+        crate::template_gen::generate_prometheusrule_template(resource)
     }
 }
 
@@ -337,6 +343,16 @@ mod tests {
         let helpers = g.helpers(&resource);
         assert!(helpers.contains("test-res.name"));
         assert!(helpers.contains("pleme-lib.name"));
+    }
+
+    #[test]
+    fn default_template_generator_prometheusrule() {
+        let g = DefaultTemplateGenerator;
+        let resource = test_resource("test_res");
+        let output = g.prometheusrule(&resource);
+        assert!(output.contains("kind: PrometheusRule"));
+        assert!(output.contains("monitoring.coreos.com/v1"));
+        assert!(output.contains("test-res.fullname"));
     }
 
     #[test]

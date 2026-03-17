@@ -1,8 +1,8 @@
 use helm_forge::{
     ChartGenerator, DefaultAttributeFilter, GenerationStage, HelmBackend, HelmConfig,
     generate_chart_yaml, generate_configmap_template, generate_deployment_test,
-    generate_secret_template, generate_values_schema, generate_values_yaml,
-    iac_type_to_json_schema,
+    generate_prometheusrule_template, generate_secret_template, generate_values_schema,
+    generate_values_yaml, iac_type_to_json_schema, validate_dns1123, Dns1123Result,
 };
 use iac_forge::backend::Backend;
 use iac_forge::testing::{test_provider, test_resource, test_resource_with_type, TestAttributeBuilder};
@@ -22,7 +22,7 @@ fn generate_complete_chart_and_write_to_disk() {
     let artifacts = backend
         .generate_resource(&resource, &provider)
         .expect("generation failed");
-    assert!(artifacts.len() >= 11);
+    assert!(artifacts.len() >= 12);
 
     let tmpdir = TempDir::new().unwrap();
     for artifact in &artifacts {
@@ -45,12 +45,13 @@ fn generate_complete_chart_and_write_to_disk() {
     assert!(base.join("templates/pdb.yaml").exists());
     assert!(base.join("templates/hpa.yaml").exists());
     assert!(base.join("templates/podmonitor.yaml").exists());
+    assert!(base.join("templates/prometheusrule.yaml").exists());
     assert!(base.join("templates/configmap.yaml").exists());
     assert!(base.join("templates/secret.yaml").exists());
 
     // Count template files
     let count = fs::read_dir(base.join("templates")).unwrap().count();
-    assert!(count >= 10, "expected >=10 templates, got {count}");
+    assert!(count >= 11, "expected >=11 templates, got {count}");
 }
 
 #[test]
@@ -163,6 +164,10 @@ fn all_config_fields_propagate_to_output() {
     assert_eq!(values.replica_count, 5);
     assert_eq!(values.image.pull_policy, "IfNotPresent");
     assert!(!values.monitoring.enabled);
+    assert!(!values.monitoring.alerting.enabled);
+    assert_eq!(values.monitoring.interval, "30s");
+    assert_eq!(values.monitoring.port, "metrics");
+    assert_eq!(values.monitoring.path, "/metrics");
     assert!(!values.network_policy.enabled);
     assert!(values.pdb.enabled);
     assert!(values.autoscaling.enabled);
@@ -537,4 +542,114 @@ fn test_file_references_correct_chart() {
     assert!(test_yaml.contains("templates/deployment.yaml"));
     assert!(test_yaml.contains("isKind"));
     assert!(test_yaml.contains("runAsNonRoot"));
+}
+
+// ── DNS-1123 validation integration tests ────────────────────────────────
+
+#[test]
+fn dns1123_valid_resource_name_generates_chart() {
+    let backend = HelmBackend::default();
+    let provider = test_provider("test");
+    let resource = test_resource("my-valid-name");
+    let artifacts = backend.generate_resource(&resource, &provider).unwrap();
+    assert!(artifacts.iter().any(|a| a.path.contains("my-valid-name")));
+}
+
+#[test]
+fn dns1123_invalid_name_returns_error() {
+    let backend = HelmBackend::default();
+    let provider = test_provider("test");
+    let mut resource = test_resource("test");
+    resource.name = "---".into();
+    let result = backend.generate_resource(&resource, &provider);
+    assert!(result.is_err());
+}
+
+#[test]
+fn dns1123_long_name_truncated_in_generation() {
+    let long_name = "a".repeat(70);
+    let result = validate_dns1123(&long_name).unwrap();
+    assert!(matches!(result, Dns1123Result::Truncated(_)));
+    assert_eq!(result.name().len(), 63);
+}
+
+// ── PrometheusRule integration tests ─────────────────────────────────────
+
+#[test]
+fn prometheusrule_template_in_generated_artifacts() {
+    let backend = HelmBackend::default();
+    let provider = test_provider("test");
+    let resource = test_resource("alert_test");
+    let artifacts = backend.generate_resource(&resource, &provider).unwrap();
+
+    let prom = artifacts
+        .iter()
+        .find(|a| a.path.ends_with("prometheusrule.yaml"))
+        .expect("prometheusrule.yaml must be generated");
+    assert!(prom.content.contains("kind: PrometheusRule"));
+    assert!(prom.content.contains("monitoring.alerting.enabled"));
+}
+
+#[test]
+fn prometheusrule_template_valid_yaml_structure() {
+    let resource = test_resource("my_svc");
+    let tpl = generate_prometheusrule_template(&resource);
+    assert!(tpl.contains("monitoring.coreos.com/v1"));
+    assert!(tpl.contains("severity: critical"));
+    assert!(tpl.contains("for: 2m"));
+    // Conditional on alerting.enabled.
+    assert!(tpl.starts_with("{{- if .Values.monitoring.alerting.enabled }}"));
+    assert!(tpl.trim_end().ends_with("{{- end }}"));
+}
+
+// ── HelmConfig validation integration tests ──────────────────────────────
+
+#[test]
+fn default_helm_config_passes_validation() {
+    let cfg = HelmConfig::default();
+    assert!(cfg.validate().is_empty());
+}
+
+#[test]
+fn helm_config_validation_catches_all_errors() {
+    let cfg = HelmConfig {
+        lib_chart_version: String::new(),
+        default_chart_version: String::new(),
+        replica_count: 0,
+        cpu_request: "bad-value".into(),
+        memory_request: "xyz".into(),
+        ..HelmConfig::default()
+    };
+    let errors = cfg.validate();
+    assert_eq!(errors.len(), 5);
+    assert!(errors.iter().any(|e| e.contains("lib_chart_version")));
+    assert!(errors.iter().any(|e| e.contains("default_chart_version")));
+    assert!(errors.iter().any(|e| e.contains("replica_count")));
+    assert!(errors.iter().any(|e| e.contains("cpu_request")));
+    assert!(errors.iter().any(|e| e.contains("memory_request")));
+}
+
+// ── Extended monitoring values integration tests ─────────────────────────
+
+#[test]
+fn monitoring_values_contain_new_fields() {
+    let resource = test_resource("mon_test");
+    let yaml = generate_values_yaml(&resource);
+    assert!(yaml.contains("alerting:"));
+    assert!(yaml.contains("interval:"));
+    assert!(yaml.contains("port:"));
+    assert!(yaml.contains("path:"));
+}
+
+#[test]
+fn monitoring_schema_has_alerting_section() {
+    let resource = test_resource("schema_mon");
+    let schema_str = generate_values_schema(&resource);
+    let schema: Value = serde_json::from_str(&schema_str).unwrap();
+
+    let monitoring = &schema["properties"]["monitoring"]["properties"];
+    assert!(monitoring["alerting"].is_object());
+    assert!(monitoring["interval"].is_object());
+    assert!(monitoring["port"].is_object());
+    assert!(monitoring["path"].is_object());
 }
