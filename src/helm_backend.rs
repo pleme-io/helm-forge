@@ -5,6 +5,9 @@ use iac_forge::ir::{IacDataSource, IacProvider, IacResource};
 use iac_forge::IacForgeError;
 
 use crate::config::HelmConfig;
+use crate::fluxcd_gen::{
+    DefaultFluxCdGenerator, FluxCdConfig, FluxCdGenerator, generate_kustomization,
+};
 use crate::naming::{HelmNaming, validate_dns1123};
 use crate::traits::{
     AttributeFilter, ChartGenerator, DefaultAttributeFilter, DefaultChartGenerator,
@@ -28,6 +31,7 @@ pub struct HelmBackend {
     template_gen: Box<dyn TemplateGenerator>,
     test_gen: Box<dyn TestFileGenerator>,
     filter: Box<dyn AttributeFilter>,
+    fluxcd_gen: Option<Box<dyn FluxCdGenerator>>,
     config: HelmConfig,
 }
 
@@ -52,6 +56,7 @@ impl HelmBackend {
             template_gen: Box::new(DefaultTemplateGenerator),
             test_gen: Box::new(DefaultTestFileGenerator),
             filter: Box::new(DefaultAttributeFilter),
+            fluxcd_gen: None,
             config,
         }
     }
@@ -91,6 +96,7 @@ pub struct HelmBackendBuilder {
     template_gen: Option<Box<dyn TemplateGenerator>>,
     test_gen: Option<Box<dyn TestFileGenerator>>,
     filter: Option<Box<dyn AttributeFilter>>,
+    fluxcd_gen: Option<Box<dyn FluxCdGenerator>>,
 }
 
 impl HelmBackendBuilder {
@@ -104,6 +110,7 @@ impl HelmBackendBuilder {
             template_gen: None,
             test_gen: None,
             filter: None,
+            fluxcd_gen: None,
         }
     }
 
@@ -149,6 +156,22 @@ impl HelmBackendBuilder {
         self
     }
 
+    /// Set a FluxCD generator. When present, `generate_resource()` also produces
+    /// a `fluxcd/helmrelease-<name>.yaml` artifact, and `generate_provider()`
+    /// produces a `fluxcd/kustomization.yaml`.
+    #[must_use]
+    pub fn fluxcd_generator(mut self, generator: Box<dyn FluxCdGenerator>) -> Self {
+        self.fluxcd_gen = Some(generator);
+        self
+    }
+
+    /// Enable FluxCD generation with the given config (convenience for
+    /// `fluxcd_generator(Box::new(DefaultFluxCdGenerator { config }))`).
+    #[must_use]
+    pub fn fluxcd_config(self, config: FluxCdConfig) -> Self {
+        self.fluxcd_generator(Box::new(DefaultFluxCdGenerator { config }))
+    }
+
     /// Build the `HelmBackend`. Uses default implementations for any generators
     /// not explicitly set.
     #[must_use]
@@ -175,6 +198,7 @@ impl HelmBackendBuilder {
             filter: self
                 .filter
                 .unwrap_or_else(|| Box::new(DefaultAttributeFilter)),
+            fluxcd_gen: self.fluxcd_gen,
             config,
         }
     }
@@ -277,6 +301,15 @@ impl Backend for HelmBackend {
         });
         _stage = GenerationStage::Done;
 
+        // FluxCD HelmRelease (optional)
+        if let Some(ref fluxcd) = self.fluxcd_gen {
+            artifacts.push(GeneratedArtifact {
+                path: format!("fluxcd/helmrelease-{chart_name}.yaml"),
+                content: fluxcd.generate(resource, &provider.name),
+                kind: ArtifactKind::Metadata,
+            });
+        }
+
         Ok(artifacts)
     }
 
@@ -291,10 +324,20 @@ impl Backend for HelmBackend {
     fn generate_provider(
         &self,
         _provider: &IacProvider,
-        _resources: &[IacResource],
+        resources: &[IacResource],
         _data_sources: &[IacDataSource],
     ) -> Result<Vec<GeneratedArtifact>, IacForgeError> {
-        Ok(Vec::new())
+        let mut artifacts = Vec::new();
+
+        if self.fluxcd_gen.is_some() {
+            artifacts.push(GeneratedArtifact {
+                path: "fluxcd/kustomization.yaml".into(),
+                content: generate_kustomization(resources),
+                kind: ArtifactKind::Metadata,
+            });
+        }
+
+        Ok(artifacts)
     }
 
     fn generate_test(

@@ -1,8 +1,10 @@
 use helm_forge::{
-    ChartGenerator, DefaultAttributeFilter, GenerationStage, HelmBackend, HelmConfig,
-    generate_chart_yaml, generate_configmap_template, generate_deployment_test,
-    generate_prometheusrule_template, generate_secret_template, generate_values_schema,
-    generate_values_yaml, iac_type_to_json_schema, validate_dns1123, Dns1123Result,
+    ChartGenerator, DefaultAttributeFilter, DefaultFluxCdGenerator, FluxCdConfig,
+    FluxCdGenerator, GenerationStage, HelmBackend, HelmConfig, generate_chart_yaml,
+    generate_configmap_template, generate_deployment_test, generate_helmrelease,
+    generate_kustomization, generate_prometheusrule_template, generate_secret_template,
+    generate_values_schema, generate_values_yaml, iac_type_to_json_schema, validate_dns1123,
+    Dns1123Result,
 };
 use iac_forge::backend::Backend;
 use iac_forge::testing::{test_provider, test_resource, test_resource_with_type, TestAttributeBuilder};
@@ -652,4 +654,224 @@ fn monitoring_schema_has_alerting_section() {
     assert!(monitoring["interval"].is_object());
     assert!(monitoring["port"].is_object());
     assert!(monitoring["path"].is_object());
+}
+
+// ── FluxCD HelmRelease generation ────────────────────────────────────────────
+
+#[test]
+fn fluxcd_helmrelease_is_valid_yaml_with_all_fields() {
+    let resource = test_resource("static_secret");
+    let yaml_str = generate_helmrelease(&resource, "akeyless", &FluxCdConfig::default());
+    let doc: Value = serde_yaml_ng::from_str(&yaml_str).expect("HelmRelease must be valid YAML");
+
+    assert_eq!(doc["apiVersion"], "helm.toolkit.fluxcd.io/v2");
+    assert_eq!(doc["kind"], "HelmRelease");
+    assert_eq!(doc["metadata"]["name"], "static-secret");
+    assert_eq!(doc["metadata"]["namespace"], "akeyless-system");
+    assert_eq!(doc["spec"]["interval"], "5m");
+    assert_eq!(doc["spec"]["chart"]["spec"]["chart"], "charts/static-secret");
+    assert_eq!(
+        doc["spec"]["chart"]["spec"]["sourceRef"]["kind"],
+        "GitRepository"
+    );
+    assert_eq!(
+        doc["spec"]["chart"]["spec"]["sourceRef"]["name"],
+        "helm-akeyless-gen"
+    );
+    assert_eq!(
+        doc["spec"]["chart"]["spec"]["sourceRef"]["namespace"],
+        "flux-system"
+    );
+    assert_eq!(doc["spec"]["chart"]["spec"]["interval"], "1h");
+    assert_eq!(doc["spec"]["install"]["remediation"]["retries"], 3);
+    assert_eq!(doc["spec"]["upgrade"]["remediation"]["retries"], 3);
+}
+
+#[test]
+fn fluxcd_kustomization_lists_all_resources_sorted() {
+    let resources = vec![
+        test_resource("zzz_target"),
+        test_resource("aaa_auth_method"),
+        test_resource("mmm_secret"),
+    ];
+    let yaml_str = generate_kustomization(&resources);
+    let doc: Value =
+        serde_yaml_ng::from_str(&yaml_str).expect("kustomization must be valid YAML");
+
+    assert_eq!(doc["apiVersion"], "kustomize.config.k8s.io/v1beta1");
+    assert_eq!(doc["kind"], "Kustomization");
+    let res_arr = doc["resources"].as_array().expect("resources should be array");
+    assert_eq!(res_arr.len(), 3);
+    // Verify sorted order
+    assert_eq!(res_arr[0], "helmrelease-aaa-auth-method.yaml");
+    assert_eq!(res_arr[1], "helmrelease-mmm-secret.yaml");
+    assert_eq!(res_arr[2], "helmrelease-zzz-target.yaml");
+}
+
+#[test]
+fn backend_with_fluxcd_produces_helmrelease_artifacts() {
+    let backend = HelmBackend::builder()
+        .fluxcd_config(FluxCdConfig::default())
+        .build();
+    let provider = test_provider("akeyless");
+    let resource = test_resource("static_secret");
+
+    let artifacts = backend
+        .generate_resource(&resource, &provider)
+        .unwrap();
+
+    let fluxcd_artifact = artifacts
+        .iter()
+        .find(|a| a.path.contains("fluxcd/"))
+        .expect("should produce a fluxcd artifact");
+    assert_eq!(
+        fluxcd_artifact.path,
+        "fluxcd/helmrelease-static-secret.yaml"
+    );
+    assert!(fluxcd_artifact.content.contains("kind: HelmRelease"));
+    assert!(fluxcd_artifact.content.contains("name: static-secret"));
+}
+
+#[test]
+fn backend_without_fluxcd_produces_no_fluxcd_artifacts() {
+    let backend = HelmBackend::default();
+    let provider = test_provider("akeyless");
+    let resource = test_resource("static_secret");
+
+    let artifacts = backend
+        .generate_resource(&resource, &provider)
+        .unwrap();
+
+    assert!(
+        !artifacts.iter().any(|a| a.path.contains("fluxcd/")),
+        "default backend should not produce fluxcd artifacts"
+    );
+}
+
+#[test]
+fn backend_with_fluxcd_provider_produces_kustomization() {
+    let backend = HelmBackend::builder()
+        .fluxcd_config(FluxCdConfig::default())
+        .build();
+    let provider = test_provider("akeyless");
+    let resources = vec![
+        test_resource("auth_method_api_key"),
+        test_resource("static_secret"),
+    ];
+
+    let artifacts = backend
+        .generate_provider(&provider, &resources, &[])
+        .unwrap();
+
+    assert_eq!(artifacts.len(), 1);
+    assert_eq!(artifacts[0].path, "fluxcd/kustomization.yaml");
+    assert!(artifacts[0].content.contains("kind: Kustomization"));
+    assert!(artifacts[0]
+        .content
+        .contains("helmrelease-auth-method-api-key.yaml"));
+    assert!(artifacts[0]
+        .content
+        .contains("helmrelease-static-secret.yaml"));
+}
+
+#[test]
+fn backend_without_fluxcd_provider_returns_empty() {
+    let backend = HelmBackend::default();
+    let provider = test_provider("akeyless");
+    let resources = vec![test_resource("static_secret")];
+
+    let artifacts = backend
+        .generate_provider(&provider, &resources, &[])
+        .unwrap();
+
+    assert!(artifacts.is_empty());
+}
+
+#[test]
+fn fluxcd_generator_trait_is_object_safe_integration() {
+    let generator: Box<dyn FluxCdGenerator> = Box::new(DefaultFluxCdGenerator {
+        config: FluxCdConfig::default(),
+    });
+    let resource = test_resource("test");
+    let output = generator.generate(&resource, "akeyless");
+    assert!(output.contains("kind: HelmRelease"));
+}
+
+#[test]
+fn fluxcd_custom_config_through_builder() {
+    let config = FluxCdConfig {
+        namespace: "prod-system".into(),
+        source_name: "my-charts".into(),
+        source_namespace: "gitops".into(),
+        source_kind: "HelmRepository".into(),
+        interval: "10m".into(),
+        chart_interval: "30m".into(),
+        retries: 5,
+    };
+    let backend = HelmBackend::builder().fluxcd_config(config).build();
+    let provider = test_provider("test");
+    let resource = test_resource("my_app");
+
+    let artifacts = backend
+        .generate_resource(&resource, &provider)
+        .unwrap();
+
+    let fluxcd = artifacts
+        .iter()
+        .find(|a| a.path.contains("fluxcd/"))
+        .expect("should produce fluxcd artifact");
+    assert!(fluxcd.content.contains("namespace: prod-system"));
+    assert!(fluxcd.content.contains("name: my-charts"));
+    assert!(fluxcd.content.contains("namespace: gitops"));
+    assert!(fluxcd.content.contains("kind: HelmRepository"));
+    assert!(fluxcd.content.contains("interval: 10m"));
+    assert!(fluxcd.content.contains("interval: 30m"));
+    assert!(fluxcd.content.contains("retries: 5"));
+}
+
+#[test]
+fn fluxcd_end_to_end_write_to_disk() {
+    let backend = HelmBackend::builder()
+        .fluxcd_config(FluxCdConfig::default())
+        .build();
+    let provider = test_provider("akeyless");
+    let resources = vec![
+        test_resource("auth_method_api_key"),
+        test_resource("static_secret"),
+    ];
+
+    let tmpdir = tempfile::TempDir::new().unwrap();
+
+    // Generate resource artifacts (includes fluxcd helmrelease files)
+    for resource in &resources {
+        let artifacts = backend
+            .generate_resource(resource, &provider)
+            .unwrap();
+        for artifact in &artifacts {
+            let path = tmpdir.path().join(&artifact.path);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(&path, &artifact.content).unwrap();
+        }
+    }
+
+    // Generate provider artifacts (kustomization)
+    let provider_artifacts = backend
+        .generate_provider(&provider, &resources, &[])
+        .unwrap();
+    for artifact in &provider_artifacts {
+        let path = tmpdir.path().join(&artifact.path);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(&path, &artifact.content).unwrap();
+    }
+
+    // Verify files on disk
+    let fluxcd_dir = tmpdir.path().join("fluxcd");
+    assert!(fluxcd_dir.join("helmrelease-auth-method-api-key.yaml").exists());
+    assert!(fluxcd_dir.join("helmrelease-static-secret.yaml").exists());
+    assert!(fluxcd_dir.join("kustomization.yaml").exists());
+
+    // Verify kustomization references the helmrelease files
+    let kustomization = fs::read_to_string(fluxcd_dir.join("kustomization.yaml")).unwrap();
+    assert!(kustomization.contains("helmrelease-auth-method-api-key.yaml"));
+    assert!(kustomization.contains("helmrelease-static-secret.yaml"));
 }

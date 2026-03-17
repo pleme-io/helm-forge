@@ -27,6 +27,7 @@
 
 pub mod chart_gen;
 pub mod config;
+pub mod fluxcd_gen;
 pub mod helm_ast;
 pub mod helm_backend;
 pub mod model;
@@ -40,6 +41,7 @@ pub mod values_gen;
 
 // Core types
 pub use config::HelmConfig;
+pub use fluxcd_gen::{DefaultFluxCdGenerator, FluxCdConfig, FluxCdGenerator};
 pub use helm_backend::{HelmBackend, HelmBackendBuilder};
 pub use naming::{Dns1123Result, HelmNaming, validate_dns1123};
 
@@ -60,6 +62,7 @@ pub use model::{
 
 // Standalone generator functions (direct use without traits)
 pub use chart_gen::{generate_chart_yaml, generate_chart_yaml_with_config};
+pub use fluxcd_gen::{generate_helmrelease, generate_kustomization};
 pub use schema_gen::generate_values_schema;
 pub use template_gen::{
     generate_configmap_template, generate_deployment_template, generate_helpers_tpl,
