@@ -13,11 +13,16 @@
 //! // Default configuration
 //! let backend = HelmBackend::default();
 //!
-//! // Or customise pleme-lib version, chart version, resource defaults
+//! // Custom config
 //! let backend = HelmBackend::with_config(HelmConfig {
 //!     lib_chart_version: "~0.5.0".into(),
 //!     ..HelmConfig::default()
 //! });
+//!
+//! // Builder with mock injection
+//! let backend = HelmBackend::builder()
+//!     .config(HelmConfig::default())
+//!     .build();
 //! ```
 
 pub mod chart_gen;
@@ -31,10 +36,21 @@ pub mod traits;
 pub mod type_map;
 pub mod values_gen;
 
-pub use chart_gen::generate_chart_yaml;
+// Core types
 pub use config::HelmConfig;
-pub use helm_backend::HelmBackend;
+pub use helm_backend::{HelmBackend, HelmBackendBuilder};
 pub use naming::HelmNaming;
+
+// Generator traits (for mockability and DI)
+pub use traits::{
+    AttributeFilter, ChartGenerator, DefaultAttributeFilter, DefaultChartGenerator,
+    DefaultSchemaGenerator, DefaultTemplateGenerator, DefaultTestFileGenerator,
+    DefaultValuesGenerator, GenerationStage, SchemaGenerator, TemplateGenerator,
+    TestFileGenerator, ValuesGenerator,
+};
+
+// Standalone generator functions (direct use without traits)
+pub use chart_gen::{generate_chart_yaml, generate_chart_yaml_with_config};
 pub use schema_gen::generate_values_schema;
 pub use template_gen::{
     generate_configmap_template, generate_deployment_template, generate_helpers_tpl,
@@ -43,9 +59,5 @@ pub use template_gen::{
     generate_serviceaccount_template, generate_servicemonitor_template,
 };
 pub use test_gen::generate_deployment_test;
-pub use traits::{
-    AttributeFilter, ChartGenerator, DefaultAttributeFilter, SchemaGenerator, TemplateGenerator,
-    TestFileGenerator, ValuesGenerator,
-};
 pub use type_map::iac_type_to_json_schema;
-pub use values_gen::generate_values_yaml;
+pub use values_gen::{generate_values_yaml, generate_values_yaml_with_config};

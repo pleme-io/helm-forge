@@ -4,51 +4,185 @@ use iac_forge::backend::{
 use iac_forge::ir::{IacDataSource, IacProvider, IacResource};
 use iac_forge::IacForgeError;
 
-use crate::chart_gen::generate_chart_yaml_with_config;
 use crate::config::HelmConfig;
 use crate::naming::HelmNaming;
-use crate::schema_gen::generate_values_schema;
-use crate::template_gen::{
-    generate_configmap_template, generate_deployment_template, generate_helpers_tpl,
-    generate_hpa_template, generate_networkpolicy_template, generate_pdb_template,
-    generate_podmonitor_template, generate_secret_template, generate_service_template,
-    generate_serviceaccount_template, generate_servicemonitor_template,
+use crate::traits::{
+    AttributeFilter, ChartGenerator, DefaultAttributeFilter, DefaultChartGenerator,
+    DefaultSchemaGenerator, DefaultTemplateGenerator, DefaultTestFileGenerator,
+    DefaultValuesGenerator, GenerationStage, SchemaGenerator, TemplateGenerator,
+    TestFileGenerator, ValuesGenerator,
 };
-use crate::test_gen::generate_deployment_test;
-use crate::values_gen::generate_values_yaml_with_config;
 
-/// Helm chart generator backend.
+/// Helm chart generator backend with pluggable generators.
 ///
-/// For each [`IacResource`], generates a complete Helm chart that delegates
-/// to pleme-lib named templates. Sensitive attributes are placed in Secrets,
-/// non-sensitive in ConfigMaps.
+/// Every generation step is behind a trait, enabling mock substitution in tests
+/// and custom implementations for non-standard chart layouts.
 ///
 /// Use [`HelmBackend::default()`] for standard pleme-io conventions, or
-/// [`HelmBackend::with_config()`] to customise chart metadata and defaults.
-#[derive(Debug, Clone)]
+/// [`HelmBackend::builder()`] to inject custom generators.
+#[derive(Debug)]
 pub struct HelmBackend {
+    chart_gen: Box<dyn ChartGenerator>,
+    values_gen: Box<dyn ValuesGenerator>,
+    schema_gen: Box<dyn SchemaGenerator>,
+    template_gen: Box<dyn TemplateGenerator>,
+    test_gen: Box<dyn TestFileGenerator>,
+    filter: Box<dyn AttributeFilter>,
     config: HelmConfig,
 }
 
 impl Default for HelmBackend {
     fn default() -> Self {
-        Self {
-            config: HelmConfig::default(),
-        }
+        Self::with_config(HelmConfig::default())
     }
 }
 
 impl HelmBackend {
-    /// Create a backend with custom configuration.
+    /// Create a backend with custom configuration but default generators.
     #[must_use]
     pub fn with_config(config: HelmConfig) -> Self {
-        Self { config }
+        Self {
+            chart_gen: Box::new(DefaultChartGenerator {
+                config: config.clone(),
+            }),
+            values_gen: Box::new(DefaultValuesGenerator {
+                config: config.clone(),
+            }),
+            schema_gen: Box::new(DefaultSchemaGenerator),
+            template_gen: Box::new(DefaultTemplateGenerator),
+            test_gen: Box::new(DefaultTestFileGenerator),
+            filter: Box::new(DefaultAttributeFilter),
+            config,
+        }
+    }
+
+    /// Build a backend with full control over every generator.
+    #[must_use]
+    pub fn builder() -> HelmBackendBuilder {
+        HelmBackendBuilder::new()
     }
 
     /// Return a reference to the active configuration.
     #[must_use]
     pub fn config(&self) -> &HelmConfig {
         &self.config
+    }
+
+    /// Return a reference to the active attribute filter.
+    #[must_use]
+    pub fn filter(&self) -> &dyn AttributeFilter {
+        &*self.filter
+    }
+
+    /// Return the current generation stage for a given resource (always `Init`
+    /// since `HelmBackend` runs the full pipeline in one call).
+    #[must_use]
+    pub fn stage(&self) -> GenerationStage {
+        GenerationStage::Init
+    }
+}
+
+/// Builder for `HelmBackend` with dependency injection.
+pub struct HelmBackendBuilder {
+    config: HelmConfig,
+    chart_gen: Option<Box<dyn ChartGenerator>>,
+    values_gen: Option<Box<dyn ValuesGenerator>>,
+    schema_gen: Option<Box<dyn SchemaGenerator>>,
+    template_gen: Option<Box<dyn TemplateGenerator>>,
+    test_gen: Option<Box<dyn TestFileGenerator>>,
+    filter: Option<Box<dyn AttributeFilter>>,
+}
+
+impl HelmBackendBuilder {
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            config: HelmConfig::default(),
+            chart_gen: None,
+            values_gen: None,
+            schema_gen: None,
+            template_gen: None,
+            test_gen: None,
+            filter: None,
+        }
+    }
+
+    #[must_use]
+    pub fn config(mut self, config: HelmConfig) -> Self {
+        self.config = config;
+        self
+    }
+
+    #[must_use]
+    pub fn chart_generator(mut self, generator: Box<dyn ChartGenerator>) -> Self {
+        self.chart_gen = Some(generator);
+        self
+    }
+
+    #[must_use]
+    pub fn values_generator(mut self, generator: Box<dyn ValuesGenerator>) -> Self {
+        self.values_gen = Some(generator);
+        self
+    }
+
+    #[must_use]
+    pub fn schema_generator(mut self, generator: Box<dyn SchemaGenerator>) -> Self {
+        self.schema_gen = Some(generator);
+        self
+    }
+
+    #[must_use]
+    pub fn template_generator(mut self, generator: Box<dyn TemplateGenerator>) -> Self {
+        self.template_gen = Some(generator);
+        self
+    }
+
+    #[must_use]
+    pub fn test_generator(mut self, generator: Box<dyn TestFileGenerator>) -> Self {
+        self.test_gen = Some(generator);
+        self
+    }
+
+    #[must_use]
+    pub fn attribute_filter(mut self, filter: Box<dyn AttributeFilter>) -> Self {
+        self.filter = Some(filter);
+        self
+    }
+
+    /// Build the `HelmBackend`. Uses default implementations for any generators
+    /// not explicitly set.
+    #[must_use]
+    pub fn build(self) -> HelmBackend {
+        let config = self.config;
+        HelmBackend {
+            chart_gen: self.chart_gen.unwrap_or_else(|| {
+                Box::new(DefaultChartGenerator {
+                    config: config.clone(),
+                })
+            }),
+            values_gen: self.values_gen.unwrap_or_else(|| {
+                Box::new(DefaultValuesGenerator {
+                    config: config.clone(),
+                })
+            }),
+            schema_gen: self.schema_gen.unwrap_or_else(|| Box::new(DefaultSchemaGenerator)),
+            template_gen: self
+                .template_gen
+                .unwrap_or_else(|| Box::new(DefaultTemplateGenerator)),
+            test_gen: self
+                .test_gen
+                .unwrap_or_else(|| Box::new(DefaultTestFileGenerator)),
+            filter: self
+                .filter
+                .unwrap_or_else(|| Box::new(DefaultAttributeFilter)),
+            config,
+        }
+    }
+}
+
+impl Default for HelmBackendBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -66,48 +200,40 @@ impl Backend for HelmBackend {
         let base = format!("charts/{chart_name}");
 
         let mut artifacts = Vec::new();
+        let mut _stage = GenerationStage::Init;
 
-        // Chart.yaml
+        // Stage: ChartMetadata
         artifacts.push(GeneratedArtifact {
             path: format!("{base}/Chart.yaml"),
-            content: generate_chart_yaml_with_config(resource, &provider.name, &self.config),
+            content: self.chart_gen.generate(resource, &provider.name),
             kind: ArtifactKind::Resource,
         });
+        _stage = GenerationStage::ChartMetadata;
 
-        // values.yaml
+        // Stage: Values
         artifacts.push(GeneratedArtifact {
             path: format!("{base}/values.yaml"),
-            content: generate_values_yaml_with_config(resource, &self.config),
+            content: self.values_gen.generate(resource),
             kind: ArtifactKind::Resource,
         });
+        _stage = GenerationStage::Values;
 
-        // values.schema.json
+        // Stage: Schema
         artifacts.push(GeneratedArtifact {
             path: format!("{base}/values.schema.json"),
-            content: generate_values_schema(resource),
+            content: self.schema_gen.generate(resource),
             kind: ArtifactKind::Schema,
         });
+        _stage = GenerationStage::Schema;
 
-        // templates/_helpers.tpl
+        // Stage: Templates
         artifacts.push(GeneratedArtifact {
             path: format!("{base}/templates/_helpers.tpl"),
-            content: generate_helpers_tpl(resource),
+            content: self.template_gen.helpers(resource),
             kind: ArtifactKind::Resource,
         });
 
-        // All pleme-lib delegate templates
-        let delegates = [
-            ("deployment.yaml", generate_deployment_template()),
-            ("service.yaml", generate_service_template()),
-            ("serviceaccount.yaml", generate_serviceaccount_template()),
-            ("servicemonitor.yaml", generate_servicemonitor_template()),
-            ("networkpolicy.yaml", generate_networkpolicy_template()),
-            ("pdb.yaml", generate_pdb_template()),
-            ("hpa.yaml", generate_hpa_template()),
-            ("podmonitor.yaml", generate_podmonitor_template()),
-        ];
-
-        for (file, content) in delegates {
+        for (file, content) in self.template_gen.delegate_templates() {
             artifacts.push(GeneratedArtifact {
                 path: format!("{base}/templates/{file}"),
                 content,
@@ -115,8 +241,7 @@ impl Backend for HelmBackend {
             });
         }
 
-        // Conditional templates: configmap (non-sensitive) and secret (sensitive)
-        let configmap = generate_configmap_template(resource);
+        let configmap = self.template_gen.configmap(resource);
         if !configmap.is_empty() {
             artifacts.push(GeneratedArtifact {
                 path: format!("{base}/templates/configmap.yaml"),
@@ -125,7 +250,7 @@ impl Backend for HelmBackend {
             });
         }
 
-        let secret = generate_secret_template(resource);
+        let secret = self.template_gen.secret(resource);
         if !secret.is_empty() {
             artifacts.push(GeneratedArtifact {
                 path: format!("{base}/templates/secret.yaml"),
@@ -133,6 +258,15 @@ impl Backend for HelmBackend {
                 kind: ArtifactKind::Resource,
             });
         }
+        _stage = GenerationStage::Templates;
+
+        // Stage: Tests
+        artifacts.push(GeneratedArtifact {
+            path: format!("{base}/tests/deployment_test.yaml"),
+            content: self.test_gen.generate(resource),
+            kind: ArtifactKind::Test,
+        });
+        _stage = GenerationStage::Done;
 
         Ok(artifacts)
     }
@@ -164,7 +298,7 @@ impl Backend for HelmBackend {
 
         Ok(vec![GeneratedArtifact {
             path: format!("{base}/tests/deployment_test.yaml"),
-            content: generate_deployment_test(resource),
+            content: self.test_gen.generate(resource),
             kind: ArtifactKind::Test,
         }])
     }
@@ -206,14 +340,12 @@ mod tests {
         let resource = test_resource("static_secret");
 
         let artifacts = backend.generate_resource(&resource, &provider).unwrap();
-
         let paths: Vec<&str> = artifacts.iter().map(|a| a.path.as_str()).collect();
-        // Core files
+
         assert!(paths.contains(&"charts/static-secret/Chart.yaml"));
         assert!(paths.contains(&"charts/static-secret/values.yaml"));
         assert!(paths.contains(&"charts/static-secret/values.schema.json"));
         assert!(paths.contains(&"charts/static-secret/templates/_helpers.tpl"));
-        // All pleme-lib delegates
         assert!(paths.contains(&"charts/static-secret/templates/deployment.yaml"));
         assert!(paths.contains(&"charts/static-secret/templates/service.yaml"));
         assert!(paths.contains(&"charts/static-secret/templates/serviceaccount.yaml"));
@@ -222,9 +354,9 @@ mod tests {
         assert!(paths.contains(&"charts/static-secret/templates/pdb.yaml"));
         assert!(paths.contains(&"charts/static-secret/templates/hpa.yaml"));
         assert!(paths.contains(&"charts/static-secret/templates/podmonitor.yaml"));
-        // Conditional
         assert!(paths.contains(&"charts/static-secret/templates/configmap.yaml"));
         assert!(paths.contains(&"charts/static-secret/templates/secret.yaml"));
+        assert!(paths.contains(&"charts/static-secret/tests/deployment_test.yaml"));
     }
 
     #[test]
@@ -232,7 +364,6 @@ mod tests {
         let backend = HelmBackend::default();
         let provider = test_provider("akeyless");
         let resource = test_resource("static_secret");
-
         let artifacts = backend.generate_test(&resource, &provider).unwrap();
         assert_eq!(artifacts.len(), 1);
         assert!(artifacts[0].path.ends_with("tests/deployment_test.yaml"));
@@ -251,5 +382,91 @@ mod tests {
         let backend = HelmBackend::default();
         let provider = test_provider("akeyless");
         assert!(backend.generate_provider(&provider, &[], &[]).unwrap().is_empty());
+    }
+
+    // ── Mock injection via builder ──────────────────────────────────────
+
+    #[derive(Debug)]
+    struct MockChartGen(String);
+    impl ChartGenerator for MockChartGen {
+        fn generate(&self, _: &IacResource, _: &str) -> String {
+            self.0.clone()
+        }
+    }
+
+    #[derive(Debug)]
+    struct MockValuesGen(String);
+    impl ValuesGenerator for MockValuesGen {
+        fn generate(&self, _: &IacResource) -> String {
+            self.0.clone()
+        }
+    }
+
+    #[test]
+    fn builder_injects_mock_chart_generator() {
+        let backend = HelmBackend::builder()
+            .chart_generator(Box::new(MockChartGen("MOCK_CHART".into())))
+            .build();
+
+        let provider = test_provider("test");
+        let resource = test_resource("test");
+        let artifacts = backend.generate_resource(&resource, &provider).unwrap();
+
+        let chart = artifacts.iter().find(|a| a.path.ends_with("Chart.yaml")).unwrap();
+        assert_eq!(chart.content, "MOCK_CHART");
+    }
+
+    #[test]
+    fn builder_injects_mock_values_generator() {
+        let backend = HelmBackend::builder()
+            .values_generator(Box::new(MockValuesGen("MOCK_VALUES".into())))
+            .build();
+
+        let provider = test_provider("test");
+        let resource = test_resource("test");
+        let artifacts = backend.generate_resource(&resource, &provider).unwrap();
+
+        let values = artifacts.iter().find(|a| a.path.ends_with("values.yaml")).unwrap();
+        assert_eq!(values.content, "MOCK_VALUES");
+    }
+
+    #[test]
+    fn builder_mixes_mock_and_default() {
+        let backend = HelmBackend::builder()
+            .chart_generator(Box::new(MockChartGen("CUSTOM".into())))
+            // all others default
+            .build();
+
+        let provider = test_provider("test");
+        let resource = test_resource("test");
+        let artifacts = backend.generate_resource(&resource, &provider).unwrap();
+
+        // Chart is custom
+        let chart = artifacts.iter().find(|a| a.path.ends_with("Chart.yaml")).unwrap();
+        assert_eq!(chart.content, "CUSTOM");
+
+        // Values is default
+        let values = artifacts.iter().find(|a| a.path.ends_with("values.yaml")).unwrap();
+        assert!(values.content.contains("image:"));
+    }
+
+    #[test]
+    fn builder_default_produces_same_as_default_constructor() {
+        let provider = test_provider("test");
+        let resource = test_resource("test");
+
+        let from_default = HelmBackend::default()
+            .generate_resource(&resource, &provider)
+            .unwrap();
+        let from_builder = HelmBackend::builder()
+            .build()
+            .generate_resource(&resource, &provider)
+            .unwrap();
+
+        assert_eq!(from_default.len(), from_builder.len());
+        for (a, b) in from_default.iter().zip(from_builder.iter()) {
+            assert_eq!(a.path, b.path);
+            assert_eq!(a.content, b.content);
+        }
     }
 }

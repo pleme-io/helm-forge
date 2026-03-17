@@ -1,5 +1,6 @@
 use helm_forge::{
-    DefaultAttributeFilter, HelmBackend, HelmConfig,
+    ChartGenerator, DefaultAttributeFilter, GenerationStage, HelmBackend, HelmConfig,
+    ValuesGenerator,
     generate_chart_yaml, generate_configmap_template, generate_deployment_test,
     generate_secret_template, generate_values_schema, generate_values_yaml,
     iac_type_to_json_schema,
@@ -412,6 +413,101 @@ fn attribute_filter_trait_is_object_safe() {
     let resource = test_resource("test");
     let _ = filter.config_attributes(&resource);
     let _ = filter.secret_attributes(&resource);
+}
+
+// ── Builder / DI / mock injection ────────────────────────────────────────────
+
+#[derive(Debug)]
+struct CountingChartGen {
+    call_count: std::sync::atomic::AtomicUsize,
+}
+
+impl ChartGenerator for CountingChartGen {
+    fn generate(&self, _resource: &iac_forge::ir::IacResource, _provider: &str) -> String {
+        self.call_count
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        "apiVersion: v2\nname: counted\ntype: application\nversion: 0.0.1\n".into()
+    }
+}
+
+#[test]
+fn builder_mock_injection_replaces_chart_gen() {
+    let counter = std::sync::Arc::new(CountingChartGen {
+        call_count: std::sync::atomic::AtomicUsize::new(0),
+    });
+
+    // We can't share Arc through Box<dyn> directly, so clone into a wrapper
+    #[derive(Debug)]
+    struct Wrapper(std::sync::Arc<CountingChartGen>);
+    impl ChartGenerator for Wrapper {
+        fn generate(&self, r: &iac_forge::ir::IacResource, p: &str) -> String {
+            self.0.generate(r, p)
+        }
+    }
+
+    let backend = HelmBackend::builder()
+        .chart_generator(Box::new(Wrapper(counter.clone())))
+        .build();
+
+    let provider = test_provider("test");
+    let resource = test_resource("test");
+    let artifacts = backend.generate_resource(&resource, &provider).unwrap();
+
+    assert_eq!(
+        counter.call_count.load(std::sync::atomic::Ordering::SeqCst),
+        1
+    );
+    let chart = artifacts
+        .iter()
+        .find(|a| a.path.ends_with("Chart.yaml"))
+        .unwrap();
+    assert!(chart.content.contains("name: counted"));
+}
+
+#[test]
+fn builder_default_equals_default_constructor() {
+    let provider = test_provider("test");
+    let resource = test_resource("test");
+
+    let a = HelmBackend::default()
+        .generate_resource(&resource, &provider)
+        .unwrap();
+    let b = HelmBackend::builder()
+        .build()
+        .generate_resource(&resource, &provider)
+        .unwrap();
+
+    assert_eq!(a.len(), b.len());
+    for (x, y) in a.iter().zip(b.iter()) {
+        assert_eq!(x.path, y.path);
+        assert_eq!(x.content, y.content);
+    }
+}
+
+// ── GenerationStage FSM ─────────────────────────────────────────────────────
+
+#[test]
+fn fsm_walks_all_stages_in_order() {
+    let mut stage = GenerationStage::Init;
+    let expected = [
+        GenerationStage::ChartMetadata,
+        GenerationStage::Values,
+        GenerationStage::Schema,
+        GenerationStage::Templates,
+        GenerationStage::Tests,
+        GenerationStage::Done,
+    ];
+    for exp in &expected {
+        stage = stage.next().unwrap();
+        assert_eq!(stage, *exp);
+    }
+    assert!(stage.is_done());
+    assert!(stage.next().is_none());
+}
+
+#[test]
+fn fsm_all_stages_count() {
+    assert_eq!(GenerationStage::ALL.len(), 7);
 }
 
 // ── Test generation ─────────────────────────────────────────────────────────
