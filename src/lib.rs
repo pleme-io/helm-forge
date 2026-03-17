@@ -27,7 +27,9 @@
 
 pub mod chart_gen;
 pub mod config;
+pub mod helm_ast;
 pub mod helm_backend;
+pub mod model;
 pub mod naming;
 pub mod schema_gen;
 pub mod template_gen;
@@ -47,6 +49,13 @@ pub use traits::{
     DefaultSchemaGenerator, DefaultTemplateGenerator, DefaultTestFileGenerator,
     DefaultValuesGenerator, GenerationStage, SchemaGenerator, TemplateGenerator,
     TestFileGenerator, ValuesGenerator,
+};
+
+// Central data structures (serde-based YAML models + Helm template AST)
+pub use helm_ast::{HelmNode, PipeFilter, Trim, render as render_helm};
+pub use model::{
+    ChartDependency, ChartYaml, ImageConfig, ResourceQuantity, ResourcesConfig, ToggleConfig,
+    ValuesYaml,
 };
 
 // Standalone generator functions (direct use without traits)

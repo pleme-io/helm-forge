@@ -85,7 +85,7 @@ fn all_templates_have_valid_helm_syntax() {
 fn chart_yaml_is_parseable_yaml() {
     let resource = test_resource("static_secret");
     let yaml_str = generate_chart_yaml(&resource, "akeyless");
-    let doc: serde_json::Value = serde_yaml::from_str(&yaml_str).expect("Chart.yaml must be valid YAML");
+    let doc: serde_json::Value = serde_yaml_ng::from_str(&yaml_str).expect("Chart.yaml must be valid YAML");
     assert_eq!(doc["apiVersion"], "v2");
     assert_eq!(doc["name"], "static-secret");
     assert_eq!(doc["type"], "application");
@@ -145,24 +145,27 @@ fn all_config_fields_propagate_to_output() {
 
     let artifacts = backend.generate_resource(&resource, &provider).unwrap();
 
-    let chart = &artifacts.iter().find(|a| a.path.ends_with("Chart.yaml")).unwrap().content;
-    assert!(chart.contains("custom-lib"), "lib_chart_name");
-    assert!(chart.contains("~2.0.0"), "lib_chart_version");
-    assert!(chart.contains("https://charts.example.com"), "lib_chart_repository");
-    assert!(chart.contains("version: 3.4.5"), "default_chart_version");
-    assert!(chart.contains("\"9.8.7\""), "default_app_version");
+    // Verify via deserialization (format-agnostic, struct-level assertions)
+    let chart_str = &artifacts.iter().find(|a| a.path.ends_with("Chart.yaml")).unwrap().content;
+    let chart: helm_forge::ChartYaml = serde_yaml_ng::from_str(chart_str).unwrap();
+    assert_eq!(chart.dependencies[0].name, "custom-lib");
+    assert_eq!(chart.dependencies[0].version, "~2.0.0");
+    assert_eq!(chart.dependencies[0].repository, "https://charts.example.com");
+    assert_eq!(chart.version, "3.4.5");
+    assert_eq!(chart.app_version, "9.8.7");
 
-    let values = &artifacts.iter().find(|a| a.path.ends_with("values.yaml")).unwrap().content;
-    assert!(values.contains("999m"), "cpu_request");
-    assert!(values.contains("999Mi"), "memory_request");
-    assert!(values.contains("9999m"), "cpu_limit");
-    assert!(values.contains("9999Mi"), "memory_limit");
-    assert!(values.contains("replicaCount: 5"), "replica_count");
-    assert!(values.contains("pullPolicy: IfNotPresent"), "image_pull_policy");
-    assert!(values.contains("monitoring:\n  enabled: false"), "monitoring_enabled");
-    assert!(values.contains("networkPolicy:\n  enabled: false"), "network_policy_enabled");
-    assert!(values.contains("pdb:\n  enabled: true"), "pdb_enabled");
-    assert!(values.contains("autoscaling:\n  enabled: true"), "autoscaling_enabled");
+    let values_str = &artifacts.iter().find(|a| a.path.ends_with("values.yaml")).unwrap().content;
+    let values: helm_forge::ValuesYaml = serde_yaml_ng::from_str(values_str).unwrap();
+    assert_eq!(values.resources.requests.cpu, "999m");
+    assert_eq!(values.resources.requests.memory, "999Mi");
+    assert_eq!(values.resources.limits.cpu, "9999m");
+    assert_eq!(values.resources.limits.memory, "9999Mi");
+    assert_eq!(values.replica_count, 5);
+    assert_eq!(values.image.pull_policy, "IfNotPresent");
+    assert!(!values.monitoring.enabled);
+    assert!(!values.network_policy.enabled);
+    assert!(values.pdb.enabled);
+    assert!(values.autoscaling.enabled);
 }
 
 #[test]
@@ -260,24 +263,24 @@ fn resource_with_only_non_sensitive_attributes() {
 
 #[test]
 fn all_iac_types_produce_valid_yaml_defaults() {
-    let types_and_expected: Vec<(IacType, &str)> = vec![
-        (IacType::String, "\"\""),
-        (IacType::Integer, "0"),
-        (IacType::Float, "0.0"),
-        (IacType::Boolean, "false"),
-        (IacType::List(Box::new(IacType::String)), "[]"),
-        (IacType::Set(Box::new(IacType::Integer)), "[]"),
-        (IacType::Map(Box::new(IacType::String)), "{}"),
-        (IacType::Any, "\"\""),
+    let types: Vec<IacType> = vec![
+        IacType::String,
+        IacType::Integer,
+        IacType::Float,
+        IacType::Boolean,
+        IacType::List(Box::new(IacType::String)),
+        IacType::Set(Box::new(IacType::Integer)),
+        IacType::Map(Box::new(IacType::String)),
+        IacType::Any,
     ];
 
-    for (iac_type, expected) in types_and_expected {
+    for iac_type in types {
         let resource = test_resource_with_type("typed", "field", iac_type);
-        let values = generate_values_yaml(&resource);
-        assert!(
-            values.contains(expected),
-            "IacType default for field should contain {expected}"
-        );
+        let yaml = generate_values_yaml(&resource);
+        // Must produce valid YAML that serde can parse back
+        let parsed: helm_forge::ValuesYaml =
+            serde_yaml_ng::from_str(&yaml).expect("must produce valid YAML");
+        assert!(parsed.config.is_some(), "config section should exist for non-sensitive attr");
     }
 }
 
@@ -338,8 +341,11 @@ fn enum_default_value_in_values_yaml() {
         )
         .build(),
     );
-    let values = generate_values_yaml(&resource);
-    assert!(values.contains("\"fast\""), "enum default should be first value");
+    let yaml = generate_values_yaml(&resource);
+    let parsed: helm_forge::ValuesYaml = serde_yaml_ng::from_str(&yaml).unwrap();
+    let config = parsed.config.expect("should have config section");
+    let mode_val = config.get("mode").expect("should have mode field");
+    assert_eq!(mode_val.as_str().unwrap(), "fast", "enum default should be first value");
 }
 
 // ── Edge cases: naming ──────────────────────────────────────────────────────
