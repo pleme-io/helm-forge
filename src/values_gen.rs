@@ -25,10 +25,10 @@ pub fn generate_values_yaml_with_config(resource: &IacResource, config: &HelmCon
     lines.push("image:".into());
     lines.push("  repository: \"\"".into());
     lines.push("  tag: latest".into());
-    lines.push("  pullPolicy: Always".into());
+    lines.push(format!("  pullPolicy: {}", config.image_pull_policy));
     lines.push(String::new());
 
-    lines.push("replicaCount: 1".into());
+    lines.push(format!("replicaCount: {}", config.replica_count));
     lines.push(String::new());
 
     // Non-sensitive config attributes
@@ -66,7 +66,7 @@ pub fn generate_values_yaml_with_config(resource: &IacResource, config: &HelmCon
         lines.push(String::new());
     }
 
-    // Standard pleme-lib values (configurable resource defaults)
+    // Standard pleme-lib values (all configurable)
     lines.push("resources:".into());
     lines.push("  requests:".into());
     lines.push(format!("    cpu: {}", config.cpu_request));
@@ -77,19 +77,19 @@ pub fn generate_values_yaml_with_config(resource: &IacResource, config: &HelmCon
     lines.push(String::new());
 
     lines.push("monitoring:".into());
-    lines.push("  enabled: true".into());
+    lines.push(format!("  enabled: {}", config.monitoring_enabled));
     lines.push(String::new());
 
     lines.push("networkPolicy:".into());
-    lines.push("  enabled: true".into());
+    lines.push(format!("  enabled: {}", config.network_policy_enabled));
     lines.push(String::new());
 
     lines.push("pdb:".into());
-    lines.push("  enabled: false".into());
+    lines.push(format!("  enabled: {}", config.pdb_enabled));
     lines.push(String::new());
 
     lines.push("autoscaling:".into());
-    lines.push("  enabled: false".into());
+    lines.push(format!("  enabled: {}", config.autoscaling_enabled));
     lines.push(String::new());
 
     lines.join("\n")
@@ -148,5 +148,44 @@ mod tests {
         assert!(yaml.contains("memory: 128Mi"));
         assert!(yaml.contains("cpu: 500m"));
         assert!(yaml.contains("memory: 512Mi"));
+    }
+
+    #[test]
+    fn respects_replica_count() {
+        let resource = test_resource("test");
+        let config = HelmConfig {
+            replica_count: 3,
+            ..HelmConfig::default()
+        };
+        let yaml = generate_values_yaml_with_config(&resource, &config);
+        assert!(yaml.contains("replicaCount: 3"));
+    }
+
+    #[test]
+    fn respects_pull_policy() {
+        let resource = test_resource("test");
+        let config = HelmConfig {
+            image_pull_policy: "IfNotPresent".into(),
+            ..HelmConfig::default()
+        };
+        let yaml = generate_values_yaml_with_config(&resource, &config);
+        assert!(yaml.contains("pullPolicy: IfNotPresent"));
+    }
+
+    #[test]
+    fn respects_feature_toggles() {
+        let resource = test_resource("test");
+        let config = HelmConfig {
+            monitoring_enabled: false,
+            network_policy_enabled: false,
+            pdb_enabled: true,
+            autoscaling_enabled: true,
+            ..HelmConfig::default()
+        };
+        let yaml = generate_values_yaml_with_config(&resource, &config);
+        assert!(yaml.contains("monitoring:\n  enabled: false"));
+        assert!(yaml.contains("networkPolicy:\n  enabled: false"));
+        assert!(yaml.contains("pdb:\n  enabled: true"));
+        assert!(yaml.contains("autoscaling:\n  enabled: true"));
     }
 }

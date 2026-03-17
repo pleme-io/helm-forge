@@ -128,10 +128,16 @@ fn all_config_fields_propagate_to_output() {
         lib_chart_repository: "https://charts.example.com".into(),
         default_chart_version: "3.4.5".into(),
         default_app_version: "9.8.7".into(),
+        replica_count: 5,
+        image_pull_policy: "IfNotPresent".into(),
         cpu_request: "999m".into(),
         memory_request: "999Mi".into(),
         cpu_limit: "9999m".into(),
         memory_limit: "9999Mi".into(),
+        monitoring_enabled: false,
+        network_policy_enabled: false,
+        pdb_enabled: true,
+        autoscaling_enabled: true,
     };
     let backend = HelmBackend::with_config(config);
     let provider = test_provider("test");
@@ -151,6 +157,12 @@ fn all_config_fields_propagate_to_output() {
     assert!(values.contains("999Mi"), "memory_request");
     assert!(values.contains("9999m"), "cpu_limit");
     assert!(values.contains("9999Mi"), "memory_limit");
+    assert!(values.contains("replicaCount: 5"), "replica_count");
+    assert!(values.contains("pullPolicy: IfNotPresent"), "image_pull_policy");
+    assert!(values.contains("monitoring:\n  enabled: false"), "monitoring_enabled");
+    assert!(values.contains("networkPolicy:\n  enabled: false"), "network_policy_enabled");
+    assert!(values.contains("pdb:\n  enabled: true"), "pdb_enabled");
+    assert!(values.contains("autoscaling:\n  enabled: true"), "autoscaling_enabled");
 }
 
 #[test]
