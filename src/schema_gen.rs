@@ -1,6 +1,7 @@
 use iac_forge::{IacAttribute, IacResource};
 use serde_json::{Map, Value};
 
+use crate::traits::{AttributeFilter, DefaultAttributeFilter};
 use crate::type_map::iac_type_to_json_schema;
 
 /// Generate a `values.schema.json` for a resource.
@@ -22,25 +23,16 @@ pub fn generate_values_schema(resource: &IacResource) -> String {
     );
 
     let mut properties = Map::new();
+    let filter = DefaultAttributeFilter;
 
     // Config section (non-sensitive)
-    let config_attrs: Vec<&IacAttribute> = resource
-        .attributes
-        .iter()
-        .filter(|a| !a.sensitive && !a.computed)
-        .collect();
-
+    let config_attrs = filter.config_attributes(resource);
     if !config_attrs.is_empty() {
         properties.insert("config".into(), build_section_schema(&config_attrs));
     }
 
     // Secrets section (sensitive)
-    let secret_attrs: Vec<&IacAttribute> = resource
-        .attributes
-        .iter()
-        .filter(|a| a.sensitive && !a.computed)
-        .collect();
-
+    let secret_attrs = filter.secret_attributes(resource);
     if !secret_attrs.is_empty() {
         properties.insert("secrets".into(), build_section_schema(&secret_attrs));
     }

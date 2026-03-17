@@ -1,6 +1,7 @@
-use iac_forge::{IacAttribute, IacResource, IacType};
+use iac_forge::{IacResource, IacType};
 
 use crate::config::HelmConfig;
+use crate::traits::{AttributeFilter, DefaultAttributeFilter};
 
 /// Generate a `values.yaml` for a resource with default configuration.
 ///
@@ -31,11 +32,8 @@ pub fn generate_values_yaml_with_config(resource: &IacResource, config: &HelmCon
     lines.push(String::new());
 
     // Non-sensitive config attributes
-    let config_attrs: Vec<&IacAttribute> = resource
-        .attributes
-        .iter()
-        .filter(|a| !a.sensitive && !a.computed)
-        .collect();
+    let filter = DefaultAttributeFilter;
+    let config_attrs = filter.config_attributes(resource);
 
     if !config_attrs.is_empty() {
         lines.push("# Resource configuration (non-sensitive)".into());
@@ -54,11 +52,7 @@ pub fn generate_values_yaml_with_config(resource: &IacResource, config: &HelmCon
     }
 
     // Sensitive attributes
-    let secret_attrs: Vec<&IacAttribute> = resource
-        .attributes
-        .iter()
-        .filter(|a| a.sensitive && !a.computed)
-        .collect();
+    let secret_attrs = filter.secret_attributes(resource);
 
     if !secret_attrs.is_empty() {
         lines.push("# Sensitive values (stored in Secret)".into());

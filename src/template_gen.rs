@@ -1,4 +1,6 @@
-use iac_forge::{IacAttribute, IacResource, to_kebab_case};
+use iac_forge::{IacResource, to_kebab_case};
+
+use crate::traits::{AttributeFilter, DefaultAttributeFilter};
 
 /// Generate `_helpers.tpl` that delegates to pleme-lib.
 #[must_use]
@@ -80,11 +82,8 @@ pub fn generate_podmonitor_template() -> String {
 /// Generate `configmap.yaml` for non-sensitive resource attributes.
 #[must_use]
 pub fn generate_configmap_template(resource: &IacResource) -> String {
-    let config_attrs: Vec<&IacAttribute> = resource
-        .attributes
-        .iter()
-        .filter(|a| !a.sensitive && !a.computed)
-        .collect();
+    let filter = DefaultAttributeFilter;
+    let config_attrs = filter.config_attributes(resource);
 
     if config_attrs.is_empty() {
         return String::new();
@@ -121,11 +120,8 @@ pub fn generate_configmap_template(resource: &IacResource) -> String {
 /// Generate `secret.yaml` for sensitive resource attributes.
 #[must_use]
 pub fn generate_secret_template(resource: &IacResource) -> String {
-    let secret_attrs: Vec<&IacAttribute> = resource
-        .attributes
-        .iter()
-        .filter(|a| a.sensitive && !a.computed)
-        .collect();
+    let filter = DefaultAttributeFilter;
+    let secret_attrs = filter.secret_attributes(resource);
 
     if secret_attrs.is_empty() {
         return String::new();
