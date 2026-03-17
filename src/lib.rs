@@ -27,6 +27,7 @@ pub mod naming;
 pub mod schema_gen;
 pub mod template_gen;
 pub mod test_gen;
+pub mod traits;
 pub mod type_map;
 pub mod values_gen;
 
@@ -42,5 +43,9 @@ pub use template_gen::{
     generate_serviceaccount_template, generate_servicemonitor_template,
 };
 pub use test_gen::generate_deployment_test;
+pub use traits::{
+    AttributeFilter, ChartGenerator, DefaultAttributeFilter, SchemaGenerator, TemplateGenerator,
+    TestFileGenerator, ValuesGenerator,
+};
 pub use type_map::iac_type_to_json_schema;
 pub use values_gen::generate_values_yaml;
