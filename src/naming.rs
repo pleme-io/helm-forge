@@ -5,6 +5,7 @@ use iac_forge::to_kebab_case;
 ///
 /// Resource names are kebab-cased for chart directory names.
 /// Field names are preserved in their canonical (snake_case) form for values.yaml.
+#[derive(Debug, Clone, Copy)]
 pub struct HelmNaming;
 
 impl NamingConvention for HelmNaming {
@@ -43,7 +44,10 @@ mod tests {
     #[test]
     fn field_name_snake_cases() {
         let naming = HelmNaming;
-        assert_eq!(naming.field_name("bound-aws-account-id"), "bound_aws_account_id");
+        assert_eq!(
+            naming.field_name("bound-aws-account-id"),
+            "bound_aws_account_id"
+        );
     }
 
     #[test]
@@ -52,6 +56,24 @@ mod tests {
         assert_eq!(
             naming.file_name("static_secret", &ArtifactKind::Resource),
             "charts/static-secret/Chart.yaml"
+        );
+    }
+
+    #[test]
+    fn file_name_schema() {
+        let naming = HelmNaming;
+        assert_eq!(
+            naming.file_name("static_secret", &ArtifactKind::Schema),
+            "charts/static-secret/values.schema.json"
+        );
+    }
+
+    #[test]
+    fn file_name_test() {
+        let naming = HelmNaming;
+        assert_eq!(
+            naming.file_name("static_secret", &ArtifactKind::Test),
+            "charts/static-secret/tests/deployment_test.yaml"
         );
     }
 }

@@ -10,53 +10,73 @@ pub fn generate_helpers_tpl(resource: &IacResource) -> String {
     s.push_str(&format!("Helpers for {n} — delegates to pleme-lib.\n"));
     s.push_str("*/}}\n\n");
 
-    s.push_str(&format!("{{{{- define \"{n}.name\" -}}}}\n"));
-    s.push_str("{{- include \"pleme-lib.name\" . -}}\n");
-    s.push_str("{{- end -}}\n\n");
+    for (helper, lib_helper) in [
+        ("name", "pleme-lib.name"),
+        ("fullname", "pleme-lib.fullname"),
+        ("labels", "pleme-lib.labels"),
+        ("selectorLabels", "pleme-lib.selectorLabels"),
+    ] {
+        s.push_str(&format!("{{{{- define \"{n}.{helper}\" -}}}}\n"));
+        s.push_str(&format!("{{{{- include \"{lib_helper}\" . -}}}}\n"));
+        s.push_str("{{- end -}}\n\n");
+    }
 
-    s.push_str(&format!("{{{{- define \"{n}.fullname\" -}}}}\n"));
-    s.push_str("{{- include \"pleme-lib.fullname\" . -}}\n");
-    s.push_str("{{- end -}}\n\n");
+    s.trim_end().to_string()
+    // Trim trailing newlines but keep one
+    + "\n"
+}
 
-    s.push_str(&format!("{{{{- define \"{n}.labels\" -}}}}\n"));
-    s.push_str("{{- include \"pleme-lib.labels\" . -}}\n");
-    s.push_str("{{- end -}}\n\n");
-
-    s.push_str(&format!("{{{{- define \"{n}.selectorLabels\" -}}}}\n"));
-    s.push_str("{{- include \"pleme-lib.selectorLabels\" . -}}\n");
-    s.push_str("{{- end -}}\n");
-
-    s
+/// Generate a single-line template that delegates to a pleme-lib named template.
+fn pleme_lib_delegate(template_name: &str) -> String {
+    format!("{{{{- include \"pleme-lib.{template_name}\" . }}}}\n")
 }
 
 /// Generate `deployment.yaml` delegating to pleme-lib.
 #[must_use]
 pub fn generate_deployment_template() -> String {
-    String::from("{{- include \"pleme-lib.deployment\" . }}\n")
+    pleme_lib_delegate("deployment")
 }
 
 /// Generate `service.yaml` delegating to pleme-lib.
 #[must_use]
 pub fn generate_service_template() -> String {
-    String::from("{{- include \"pleme-lib.service\" . }}\n")
+    pleme_lib_delegate("service")
 }
 
 /// Generate `serviceaccount.yaml` delegating to pleme-lib.
 #[must_use]
 pub fn generate_serviceaccount_template() -> String {
-    String::from("{{- include \"pleme-lib.serviceaccount\" . }}\n")
+    pleme_lib_delegate("serviceaccount")
 }
 
 /// Generate `servicemonitor.yaml` delegating to pleme-lib.
 #[must_use]
 pub fn generate_servicemonitor_template() -> String {
-    String::from("{{- include \"pleme-lib.servicemonitor\" . }}\n")
+    pleme_lib_delegate("servicemonitor")
 }
 
 /// Generate `networkpolicy.yaml` delegating to pleme-lib.
 #[must_use]
 pub fn generate_networkpolicy_template() -> String {
-    String::from("{{- include \"pleme-lib.networkpolicy\" . }}\n")
+    pleme_lib_delegate("networkpolicy")
+}
+
+/// Generate `pdb.yaml` delegating to pleme-lib.
+#[must_use]
+pub fn generate_pdb_template() -> String {
+    pleme_lib_delegate("pdb")
+}
+
+/// Generate `hpa.yaml` delegating to pleme-lib.
+#[must_use]
+pub fn generate_hpa_template() -> String {
+    pleme_lib_delegate("hpa")
+}
+
+/// Generate `podmonitor.yaml` delegating to pleme-lib.
+#[must_use]
+pub fn generate_podmonitor_template() -> String {
+    pleme_lib_delegate("podmonitor")
 }
 
 /// Generate `configmap.yaml` for non-sensitive resource attributes.
@@ -81,7 +101,10 @@ pub fn generate_configmap_template(resource: &IacResource) -> String {
     lines.push("metadata:".into());
     lines.push(format!("  name: {{{{{{ include \"{n}.fullname\" . }}}}}}"));
     lines.push(format!(
-        "  labels:\n    {{{{- include \"{n}.labels\" . | nindent 4 }}}}"
+        "  labels:"
+    ));
+    lines.push(format!(
+        "    {{{{- include \"{n}.labels\" . | nindent 4 }}}}"
     ));
     lines.push("data:".into());
 
@@ -120,8 +143,9 @@ pub fn generate_secret_template(resource: &IacResource) -> String {
     lines.push("kind: Secret".into());
     lines.push("metadata:".into());
     lines.push(format!("  name: {{{{{{ include \"{n}.fullname\" . }}}}}}"));
+    lines.push("  labels:".into());
     lines.push(format!(
-        "  labels:\n    {{{{- include \"{n}.labels\" . | nindent 4 }}}}"
+        "    {{{{- include \"{n}.labels\" . | nindent 4 }}}}"
     ));
     lines.push("type: Opaque".into());
     lines.push("stringData:".into());
@@ -146,17 +170,29 @@ mod tests {
     use iac_forge::testing::test_resource;
 
     #[test]
-    fn helpers_contains_chart_name() {
+    fn helpers_contains_chart_name_and_all_delegates() {
         let resource = test_resource("static_secret");
         let tpl = generate_helpers_tpl(&resource);
-        assert!(tpl.contains("static-secret"));
+        assert!(tpl.contains("static-secret.name"));
+        assert!(tpl.contains("static-secret.fullname"));
+        assert!(tpl.contains("static-secret.labels"));
+        assert!(tpl.contains("static-secret.selectorLabels"));
         assert!(tpl.contains("pleme-lib.name"));
+        assert!(tpl.contains("pleme-lib.fullname"));
+        assert!(tpl.contains("pleme-lib.labels"));
+        assert!(tpl.contains("pleme-lib.selectorLabels"));
     }
 
     #[test]
-    fn deployment_delegates_to_pleme_lib() {
-        let tpl = generate_deployment_template();
-        assert!(tpl.contains("pleme-lib.deployment"));
+    fn all_delegate_templates_reference_pleme_lib() {
+        assert!(generate_deployment_template().contains("pleme-lib.deployment"));
+        assert!(generate_service_template().contains("pleme-lib.service"));
+        assert!(generate_serviceaccount_template().contains("pleme-lib.serviceaccount"));
+        assert!(generate_servicemonitor_template().contains("pleme-lib.servicemonitor"));
+        assert!(generate_networkpolicy_template().contains("pleme-lib.networkpolicy"));
+        assert!(generate_pdb_template().contains("pleme-lib.pdb"));
+        assert!(generate_hpa_template().contains("pleme-lib.hpa"));
+        assert!(generate_podmonitor_template().contains("pleme-lib.podmonitor"));
     }
 
     #[test]

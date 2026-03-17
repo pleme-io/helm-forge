@@ -6,7 +6,6 @@ rust-version = "1.89.0"
 description = "Helm chart generator backend for iac-forge"
 homepage = "https://github.com/pleme-io/helm-forge"
 repository = "https://github.com/pleme-io/helm-forge"
-readme = "README.md"
 license = "MIT"
 categories = ["development-tools"]
 keywords = ["helm", "kubernetes", "codegen", "openapi", "iac"]
