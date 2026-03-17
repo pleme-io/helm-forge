@@ -6,7 +6,8 @@ use crate::type_map::iac_type_to_json_schema;
 /// Generate a `values.schema.json` for a resource.
 ///
 /// Produces a JSON Schema that validates the chart's `values.yaml`.
-/// Config (non-sensitive) and secrets (sensitive) attributes are separated.
+/// Includes schemas for both resource-specific attributes (config/secrets)
+/// and standard pleme-lib values (image, resources, monitoring, etc.).
 #[must_use]
 pub fn generate_values_schema(resource: &IacResource) -> String {
     let mut root = Map::new();
@@ -44,11 +45,21 @@ pub fn generate_values_schema(resource: &IacResource) -> String {
         properties.insert("secrets".into(), build_section_schema(&secret_attrs));
     }
 
+    // Standard pleme-lib value schemas
+    properties.insert("image".into(), image_schema());
+    properties.insert("replicaCount".into(), integer_with_default(1));
+    properties.insert("resources".into(), resources_schema());
+    properties.insert("monitoring".into(), enabled_toggle_schema());
+    properties.insert("networkPolicy".into(), enabled_toggle_schema());
+    properties.insert("pdb".into(), enabled_toggle_schema());
+    properties.insert("autoscaling".into(), enabled_toggle_schema());
+
     root.insert("properties".into(), Value::Object(properties));
 
     serde_json::to_string_pretty(&Value::Object(root)).expect("JSON serialization cannot fail")
 }
 
+/// Build a schema object for a group of attributes.
 fn build_section_schema(attrs: &[&IacAttribute]) -> Value {
     let mut props = Map::new();
     let mut required = Vec::new();
@@ -56,7 +67,6 @@ fn build_section_schema(attrs: &[&IacAttribute]) -> Value {
     for attr in attrs {
         let mut field_schema = iac_type_to_json_schema(&attr.iac_type);
 
-        // Add description if present
         if !attr.description.is_empty() {
             if let Value::Object(ref mut obj) = field_schema {
                 obj.insert(
@@ -66,7 +76,6 @@ fn build_section_schema(attrs: &[&IacAttribute]) -> Value {
             }
         }
 
-        // Add default value if present
         if let Some(ref default) = attr.default_value {
             if let Value::Object(ref mut obj) = field_schema {
                 obj.insert("default".into(), default.clone());
@@ -87,6 +96,84 @@ fn build_section_schema(attrs: &[&IacAttribute]) -> Value {
         section.insert("required".into(), Value::Array(required));
     }
     Value::Object(section)
+}
+
+/// JSON Schema for the `image` block.
+fn image_schema() -> Value {
+    let mut props = Map::new();
+    props.insert("repository".into(), string_schema());
+    props.insert("tag".into(), string_schema());
+    props.insert(
+        "pullPolicy".into(),
+        enum_schema(&["Always", "IfNotPresent", "Never"]),
+    );
+
+    let mut obj = Map::new();
+    obj.insert("type".into(), Value::String("object".into()));
+    obj.insert("properties".into(), Value::Object(props));
+    Value::Object(obj)
+}
+
+/// JSON Schema for the `resources` block (requests/limits).
+fn resources_schema() -> Value {
+    let quantity = string_schema();
+
+    let mut req_props = Map::new();
+    req_props.insert("cpu".into(), quantity.clone());
+    req_props.insert("memory".into(), quantity.clone());
+
+    let mut lim_props = Map::new();
+    lim_props.insert("cpu".into(), quantity.clone());
+    lim_props.insert("memory".into(), quantity);
+
+    let mut props = Map::new();
+    props.insert("requests".into(), object_schema(req_props));
+    props.insert("limits".into(), object_schema(lim_props));
+
+    object_schema(props)
+}
+
+/// JSON Schema for a simple `{ enabled: bool }` toggle.
+fn enabled_toggle_schema() -> Value {
+    let mut props = Map::new();
+    props.insert("enabled".into(), bool_schema());
+    object_schema(props)
+}
+
+fn string_schema() -> Value {
+    let mut obj = Map::new();
+    obj.insert("type".into(), Value::String("string".into()));
+    Value::Object(obj)
+}
+
+fn bool_schema() -> Value {
+    let mut obj = Map::new();
+    obj.insert("type".into(), Value::String("boolean".into()));
+    Value::Object(obj)
+}
+
+fn integer_with_default(n: i64) -> Value {
+    let mut obj = Map::new();
+    obj.insert("type".into(), Value::String("integer".into()));
+    obj.insert("default".into(), Value::Number(n.into()));
+    Value::Object(obj)
+}
+
+fn enum_schema(values: &[&str]) -> Value {
+    let mut obj = Map::new();
+    obj.insert("type".into(), Value::String("string".into()));
+    obj.insert(
+        "enum".into(),
+        Value::Array(values.iter().map(|v| Value::String((*v).into())).collect()),
+    );
+    Value::Object(obj)
+}
+
+fn object_schema(properties: Map<String, Value>) -> Value {
+    let mut obj = Map::new();
+    obj.insert("type".into(), Value::String("object".into()));
+    obj.insert("properties".into(), Value::Object(properties));
+    Value::Object(obj)
 }
 
 #[cfg(test)]
@@ -112,5 +199,56 @@ mod tests {
         let props = schema["properties"].as_object().unwrap();
         assert!(props.contains_key("config"));
         assert!(props.contains_key("secrets"));
+    }
+
+    #[test]
+    fn includes_pleme_lib_standard_schemas() {
+        let resource = test_resource("static_secret");
+        let schema_str = generate_values_schema(&resource);
+        let schema: Value = serde_json::from_str(&schema_str).unwrap();
+        let props = schema["properties"].as_object().unwrap();
+
+        assert!(props.contains_key("image"), "missing image schema");
+        assert!(props.contains_key("replicaCount"), "missing replicaCount");
+        assert!(props.contains_key("resources"), "missing resources");
+        assert!(props.contains_key("monitoring"), "missing monitoring");
+        assert!(props.contains_key("networkPolicy"), "missing networkPolicy");
+        assert!(props.contains_key("pdb"), "missing pdb");
+        assert!(props.contains_key("autoscaling"), "missing autoscaling");
+    }
+
+    #[test]
+    fn image_schema_has_pull_policy_enum() {
+        let resource = test_resource("test_res");
+        let schema_str = generate_values_schema(&resource);
+        let schema: Value = serde_json::from_str(&schema_str).unwrap();
+
+        let pull_policy = &schema["properties"]["image"]["properties"]["pullPolicy"];
+        assert_eq!(pull_policy["type"], "string");
+        let enum_vals = pull_policy["enum"].as_array().unwrap();
+        assert_eq!(enum_vals.len(), 3);
+    }
+
+    #[test]
+    fn resources_schema_has_requests_and_limits() {
+        let resource = test_resource("test_res");
+        let schema_str = generate_values_schema(&resource);
+        let schema: Value = serde_json::from_str(&schema_str).unwrap();
+
+        let res = &schema["properties"]["resources"]["properties"];
+        assert!(res["requests"].is_object());
+        assert!(res["limits"].is_object());
+        assert!(res["requests"]["properties"]["cpu"].is_object());
+        assert!(res["limits"]["properties"]["memory"].is_object());
+    }
+
+    #[test]
+    fn replica_count_has_integer_type_and_default() {
+        let resource = test_resource("test_res");
+        let schema_str = generate_values_schema(&resource);
+        let schema: Value = serde_json::from_str(&schema_str).unwrap();
+
+        assert_eq!(schema["properties"]["replicaCount"]["type"], "integer");
+        assert_eq!(schema["properties"]["replicaCount"]["default"], 1);
     }
 }
