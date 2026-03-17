@@ -4,8 +4,8 @@ use iac_forge::{IacResource, IacType};
 
 use crate::config::HelmConfig;
 use crate::model::{
-    AlertingConfig, ImageConfig, MonitoringConfig, ResourceQuantity, ResourcesConfig,
-    ToggleConfig, ValuesYaml,
+    AlertingConfig, ImageConfig, MonitoringConfig, PortConfig, ResourceQuantity, ResourcesConfig,
+    ServiceConfig, ServicePort, ToggleConfig, ValuesYaml,
 };
 use crate::traits::{AttributeFilter, DefaultAttributeFilter};
 
@@ -57,11 +57,25 @@ pub fn build_values_yaml(resource: &IacResource, config: &HelmConfig) -> ValuesY
 
     ValuesYaml {
         image: ImageConfig {
-            repository: String::new(),
+            repository: config.default_image_repository.clone(),
             tag: "latest".into(),
             pull_policy: config.image_pull_policy.clone(),
         },
         replica_count: config.replica_count,
+        ports: vec![PortConfig {
+            name: "http".into(),
+            container_port: config.default_container_port,
+            protocol: "TCP".into(),
+        }],
+        service: ServiceConfig {
+            service_type: config.default_service_type.clone(),
+            ports: vec![ServicePort {
+                name: "http".into(),
+                port: 80,
+                target_port: "http".into(),
+                protocol: "TCP".into(),
+            }],
+        },
         config: config_map,
         secrets: secrets_map,
         resources: ResourcesConfig {
@@ -225,5 +239,84 @@ mod tests {
         let values = build_values_yaml(&resource, &HelmConfig::default());
         assert!(values.config.is_none());
         assert!(values.secrets.is_none());
+    }
+
+    #[test]
+    fn default_image_repository_is_placeholder() {
+        let resource = test_resource("test");
+        let values = build_values_yaml(&resource, &HelmConfig::default());
+        assert_eq!(values.image.repository, "ghcr.io/pleme-io/placeholder");
+    }
+
+    #[test]
+    fn custom_image_repository_propagates() {
+        let resource = test_resource("test");
+        let config = HelmConfig {
+            default_image_repository: "ghcr.io/myorg/myapp".into(),
+            ..HelmConfig::default()
+        };
+        let values = build_values_yaml(&resource, &config);
+        assert_eq!(values.image.repository, "ghcr.io/myorg/myapp");
+    }
+
+    #[test]
+    fn default_ports_section_present() {
+        let resource = test_resource("test");
+        let values = build_values_yaml(&resource, &HelmConfig::default());
+        assert_eq!(values.ports.len(), 1);
+        assert_eq!(values.ports[0].name, "http");
+        assert_eq!(values.ports[0].container_port, 8080);
+        assert_eq!(values.ports[0].protocol, "TCP");
+    }
+
+    #[test]
+    fn default_service_section_present() {
+        let resource = test_resource("test");
+        let values = build_values_yaml(&resource, &HelmConfig::default());
+        assert_eq!(values.service.service_type, "ClusterIP");
+        assert_eq!(values.service.ports.len(), 1);
+        assert_eq!(values.service.ports[0].name, "http");
+        assert_eq!(values.service.ports[0].port, 80);
+        assert_eq!(values.service.ports[0].target_port, "http");
+        assert_eq!(values.service.ports[0].protocol, "TCP");
+    }
+
+    #[test]
+    fn custom_container_port_propagates() {
+        let resource = test_resource("test");
+        let config = HelmConfig {
+            default_container_port: 3000,
+            ..HelmConfig::default()
+        };
+        let values = build_values_yaml(&resource, &config);
+        assert_eq!(values.ports[0].container_port, 3000);
+    }
+
+    #[test]
+    fn custom_service_type_propagates() {
+        let resource = test_resource("test");
+        let config = HelmConfig {
+            default_service_type: "LoadBalancer".into(),
+            ..HelmConfig::default()
+        };
+        let values = build_values_yaml(&resource, &config);
+        assert_eq!(values.service.service_type, "LoadBalancer");
+    }
+
+    #[test]
+    fn ports_yaml_contains_container_port() {
+        let resource = test_resource("test");
+        let yaml = generate_values_yaml(&resource);
+        assert!(yaml.contains("ports:"));
+        assert!(yaml.contains("containerPort: 8080"));
+    }
+
+    #[test]
+    fn service_yaml_contains_type_and_ports() {
+        let resource = test_resource("test");
+        let yaml = generate_values_yaml(&resource);
+        assert!(yaml.contains("service:"));
+        assert!(yaml.contains("type: ClusterIP"));
+        assert!(yaml.contains("targetPort: http"));
     }
 }

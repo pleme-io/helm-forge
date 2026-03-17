@@ -132,7 +132,10 @@ fn all_config_fields_propagate_to_output() {
         default_chart_version: "3.4.5".into(),
         default_app_version: "9.8.7".into(),
         replica_count: 5,
+        default_image_repository: "ghcr.io/pleme-io/custom".into(),
         image_pull_policy: "IfNotPresent".into(),
+        default_container_port: 9090,
+        default_service_type: "NodePort".into(),
         cpu_request: "999m".into(),
         memory_request: "999Mi".into(),
         cpu_limit: "9999m".into(),
@@ -164,7 +167,11 @@ fn all_config_fields_propagate_to_output() {
     assert_eq!(values.resources.limits.cpu, "9999m");
     assert_eq!(values.resources.limits.memory, "9999Mi");
     assert_eq!(values.replica_count, 5);
+    assert_eq!(values.image.repository, "ghcr.io/pleme-io/custom");
     assert_eq!(values.image.pull_policy, "IfNotPresent");
+    assert_eq!(values.ports.len(), 1);
+    assert_eq!(values.ports[0].container_port, 9090);
+    assert_eq!(values.service.service_type, "NodePort");
     assert!(!values.monitoring.enabled);
     assert!(!values.monitoring.alerting.enabled);
     assert_eq!(values.monitoring.interval, "30s");
@@ -394,6 +401,8 @@ fn schema_includes_all_pleme_lib_sections() {
     let required_sections = [
         "image",
         "replicaCount",
+        "ports",
+        "service",
         "resources",
         "monitoring",
         "networkPolicy",
@@ -874,4 +883,119 @@ fn fluxcd_end_to_end_write_to_disk() {
     let kustomization = fs::read_to_string(fluxcd_dir.join("kustomization.yaml")).unwrap();
     assert!(kustomization.contains("helmrelease-auth-method-api-key.yaml"));
     assert!(kustomization.contains("helmrelease-static-secret.yaml"));
+}
+
+// ── Ports and service in generated values ─────────────────────────────────
+
+#[test]
+fn generated_values_have_ports_section() {
+    let resource = test_resource("ports_test");
+    let yaml = generate_values_yaml(&resource);
+    let parsed: helm_forge::ValuesYaml = serde_yaml_ng::from_str(&yaml).unwrap();
+    assert_eq!(parsed.ports.len(), 1);
+    assert_eq!(parsed.ports[0].name, "http");
+    assert_eq!(parsed.ports[0].container_port, 8080);
+    assert_eq!(parsed.ports[0].protocol, "TCP");
+}
+
+#[test]
+fn generated_values_have_service_section() {
+    let resource = test_resource("svc_test");
+    let yaml = generate_values_yaml(&resource);
+    let parsed: helm_forge::ValuesYaml = serde_yaml_ng::from_str(&yaml).unwrap();
+    assert_eq!(parsed.service.service_type, "ClusterIP");
+    assert_eq!(parsed.service.ports.len(), 1);
+    assert_eq!(parsed.service.ports[0].port, 80);
+    assert_eq!(parsed.service.ports[0].target_port, "http");
+}
+
+// ── Image repository default ─────────────────────────────────────────────
+
+#[test]
+fn default_image_repository_is_not_empty() {
+    let resource = test_resource("img_test");
+    let yaml = generate_values_yaml(&resource);
+    let parsed: helm_forge::ValuesYaml = serde_yaml_ng::from_str(&yaml).unwrap();
+    assert_eq!(parsed.image.repository, "ghcr.io/pleme-io/placeholder");
+    assert!(!parsed.image.repository.is_empty());
+}
+
+// ── Array type rendering with toJson ──────────────────────────────────────
+
+#[test]
+fn configmap_list_attr_uses_to_json_integration() {
+    // test_resource has a "tags" attribute of List(String), non-sensitive
+    let resource = test_resource("json_test");
+    let tpl = generate_configmap_template(&resource);
+    assert!(
+        tpl.contains("| toJson | quote"),
+        "list attribute must use toJson | quote in configmap"
+    );
+}
+
+#[test]
+fn configmap_string_attr_uses_plain_quote_integration() {
+    let resource = test_resource("json_test");
+    let tpl = generate_configmap_template(&resource);
+    // The "name" attribute is String, should use plain quote
+    let name_line = tpl
+        .lines()
+        .find(|l| l.contains(".Values.config.name"))
+        .expect("should have name config line");
+    assert!(
+        name_line.contains("| quote") && !name_line.contains("toJson"),
+        "string attribute must use plain | quote"
+    );
+}
+
+// ── minLength in schema for required strings ──────────────────────────────
+
+#[test]
+fn schema_required_string_has_min_length_integration() {
+    let mut resource = test_resource("minlen_integration");
+    resource.attributes.clear();
+    resource.attributes.push(
+        TestAttributeBuilder::new("name", IacType::String)
+            .required()
+            .build(),
+    );
+    resource.attributes.push(
+        TestAttributeBuilder::new("optional_field", IacType::String)
+            .build(),
+    );
+
+    let schema_str = generate_values_schema(&resource);
+    let schema: Value = serde_json::from_str(&schema_str).unwrap();
+    let config_props = &schema["properties"]["config"]["properties"];
+
+    assert_eq!(
+        config_props["name"]["minLength"], 1,
+        "required string must have minLength: 1"
+    );
+    assert!(
+        config_props["optional_field"].get("minLength").is_none(),
+        "optional string must not have minLength"
+    );
+}
+
+// ── Ports and service schema integration ──────────────────────────────────
+
+#[test]
+fn schema_has_ports_and_service_sections() {
+    let resource = test_resource("schema_ports");
+    let schema_str = generate_values_schema(&resource);
+    let schema: Value = serde_json::from_str(&schema_str).unwrap();
+    let props = schema["properties"].as_object().unwrap();
+
+    assert!(props.contains_key("ports"), "schema missing ports");
+    assert!(props.contains_key("service"), "schema missing service");
+
+    // ports is array
+    assert_eq!(props["ports"]["type"], "array");
+
+    // service is object with type enum and ports
+    assert_eq!(props["service"]["type"], "object");
+    let svc_props = props["service"]["properties"].as_object().unwrap();
+    assert!(svc_props.contains_key("type"));
+    assert!(svc_props.contains_key("ports"));
 }

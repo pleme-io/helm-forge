@@ -1,6 +1,12 @@
-use iac_forge::{IacResource, to_kebab_case};
+use iac_forge::{IacResource, IacType, to_kebab_case};
 
 use crate::traits::{AttributeFilter, DefaultAttributeFilter};
+
+/// Check whether an `IacType` is a collection (List, Set, or Map) that should
+/// be rendered via `toJson | quote` rather than plain `quote`.
+fn is_collection_type(iac_type: &IacType) -> bool {
+    matches!(iac_type, IacType::List(_) | IacType::Set(_) | IacType::Map(_) | IacType::Object { .. })
+}
 
 /// Generate `_helpers.tpl` that delegates to pleme-lib.
 #[must_use]
@@ -153,10 +159,17 @@ pub fn generate_configmap_template(resource: &IacResource) -> String {
 
     for attr in &config_attrs {
         let key = attr.canonical_name.replace('_', "-");
-        lines.push(format!(
-            "  {key}: {{{{ .Values.config.{} | quote }}}}",
-            attr.canonical_name
-        ));
+        if is_collection_type(&attr.iac_type) {
+            lines.push(format!(
+                "  {key}: {{{{ .Values.config.{} | toJson | quote }}}}",
+                attr.canonical_name
+            ));
+        } else {
+            lines.push(format!(
+                "  {key}: {{{{ .Values.config.{} | quote }}}}",
+                attr.canonical_name
+            ));
+        }
     }
 
     lines.push("{{- end }}".into());
@@ -192,10 +205,17 @@ pub fn generate_secret_template(resource: &IacResource) -> String {
 
     for attr in &secret_attrs {
         let key = attr.canonical_name.replace('_', "-");
-        lines.push(format!(
-            "  {key}: {{{{ .Values.secrets.{} | quote }}}}",
-            attr.canonical_name
-        ));
+        if is_collection_type(&attr.iac_type) {
+            lines.push(format!(
+                "  {key}: {{{{ .Values.secrets.{} | toJson | quote }}}}",
+                attr.canonical_name
+            ));
+        } else {
+            lines.push(format!(
+                "  {key}: {{{{ .Values.secrets.{} | quote }}}}",
+                attr.canonical_name
+            ));
+        }
     }
 
     lines.push("{{- end }}".into());
@@ -376,5 +396,78 @@ mod tests {
                 assert!(!key.contains('_'), "configmap key {key} has underscore");
             }
         }
+    }
+
+    #[test]
+    fn configmap_list_attr_uses_to_json() {
+        // test_resource has "tags" which is List(String) and non-sensitive
+        let resource = test_resource("static_secret");
+        let tpl = generate_configmap_template(&resource);
+        assert!(
+            tpl.contains("| toJson | quote"),
+            "list attribute should use toJson | quote, got:\n{tpl}"
+        );
+    }
+
+    #[test]
+    fn configmap_string_attr_uses_plain_quote() {
+        // test_resource has "name" which is String and non-sensitive
+        let resource = test_resource("static_secret");
+        let tpl = generate_configmap_template(&resource);
+        // Find the "name" line specifically
+        let name_line = tpl
+            .lines()
+            .find(|l| l.contains(".Values.config.name"))
+            .expect("should have a name config line");
+        assert!(
+            name_line.contains("| quote") && !name_line.contains("toJson"),
+            "string attribute should use plain | quote, got: {name_line}"
+        );
+    }
+
+    #[test]
+    fn secret_string_attr_uses_plain_quote() {
+        // test_resource has "value" which is String and sensitive
+        let resource = test_resource("static_secret");
+        let tpl = generate_secret_template(&resource);
+        let value_line = tpl
+            .lines()
+            .find(|l| l.contains(".Values.secrets.value"))
+            .expect("should have a value secret line");
+        assert!(
+            value_line.contains("| quote") && !value_line.contains("toJson"),
+            "string secret should use plain | quote, got: {value_line}"
+        );
+    }
+
+    #[test]
+    fn configmap_map_attr_uses_to_json() {
+        let mut resource = test_resource_with_type(
+            "map_test",
+            "settings",
+            IacType::Map(Box::new(IacType::String)),
+        );
+        // Ensure it's non-sensitive
+        resource.attributes[0].sensitive = false;
+        let tpl = generate_configmap_template(&resource);
+        assert!(
+            tpl.contains("| toJson | quote"),
+            "map attribute should use toJson | quote, got:\n{tpl}"
+        );
+    }
+
+    #[test]
+    fn secret_list_attr_uses_to_json() {
+        let mut resource = test_resource_with_type(
+            "secret_list",
+            "keys",
+            IacType::List(Box::new(IacType::String)),
+        );
+        resource.attributes[0].sensitive = true;
+        let tpl = generate_secret_template(&resource);
+        assert!(
+            tpl.contains("| toJson | quote"),
+            "list secret should use toJson | quote, got:\n{tpl}"
+        );
     }
 }

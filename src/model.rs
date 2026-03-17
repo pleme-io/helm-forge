@@ -55,6 +55,8 @@ pub struct ChartDependency {
 pub struct ValuesYaml {
     pub image: ImageConfig,
     pub replica_count: u32,
+    pub ports: Vec<PortConfig>,
+    pub service: ServiceConfig,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub config: Option<BTreeMap<String, serde_yaml_ng::Value>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -64,6 +66,33 @@ pub struct ValuesYaml {
     pub network_policy: ToggleConfig,
     pub pdb: ToggleConfig,
     pub autoscaling: ToggleConfig,
+}
+
+/// Container port configuration.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct PortConfig {
+    pub name: String,
+    pub container_port: u16,
+    pub protocol: String,
+}
+
+/// Kubernetes Service configuration.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ServiceConfig {
+    #[serde(rename = "type")]
+    pub service_type: String,
+    pub ports: Vec<ServicePort>,
+}
+
+/// A port entry in the Service spec.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ServicePort {
+    pub name: String,
+    pub port: u16,
+    pub target_port: String,
+    pub protocol: String,
 }
 
 /// Container image configuration.
@@ -182,6 +211,26 @@ mod tests {
         }
     }
 
+    fn default_ports() -> Vec<PortConfig> {
+        vec![PortConfig {
+            name: "http".into(),
+            container_port: 8080,
+            protocol: "TCP".into(),
+        }]
+    }
+
+    fn default_service() -> ServiceConfig {
+        ServiceConfig {
+            service_type: "ClusterIP".into(),
+            ports: vec![ServicePort {
+                name: "http".into(),
+                port: 80,
+                target_port: "http".into(),
+                protocol: "TCP".into(),
+            }],
+        }
+    }
+
     #[test]
     fn values_yaml_round_trips() {
         let values = ValuesYaml {
@@ -191,6 +240,8 @@ mod tests {
                 pull_policy: "Always".into(),
             },
             replica_count: 2,
+            ports: default_ports(),
+            service: default_service(),
             config: Some(BTreeMap::from([
                 ("key".into(), serde_yaml_ng::Value::String("value".into())),
             ])),
@@ -220,11 +271,13 @@ mod tests {
     fn values_yaml_omits_none_sections() {
         let values = ValuesYaml {
             image: ImageConfig {
-                repository: "".into(),
+                repository: "ghcr.io/pleme-io/placeholder".into(),
                 tag: "latest".into(),
                 pull_policy: "Always".into(),
             },
             replica_count: 1,
+            ports: default_ports(),
+            service: default_service(),
             config: None,
             secrets: None,
             resources: ResourcesConfig {

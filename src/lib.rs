@@ -56,8 +56,8 @@ pub use traits::{
 // Central data structures (serde-based YAML models + Helm template AST)
 pub use helm_ast::{HelmNode, PipeFilter, Trim, render as render_helm};
 pub use model::{
-    AlertingConfig, ChartDependency, ChartYaml, ImageConfig, MonitoringConfig, ResourceQuantity,
-    ResourcesConfig, ToggleConfig, ValuesYaml,
+    AlertingConfig, ChartDependency, ChartYaml, ImageConfig, MonitoringConfig, PortConfig,
+    ResourceQuantity, ResourcesConfig, ServiceConfig, ServicePort, ToggleConfig, ValuesYaml,
 };
 
 // Standalone generator functions (direct use without traits)

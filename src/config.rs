@@ -21,8 +21,14 @@ pub struct HelmConfig {
     // ── Container defaults ──────────────────────────────────────────────
     /// Default replica count (default: `1`).
     pub replica_count: u32,
+    /// Default image repository (default: `"ghcr.io/pleme-io/placeholder"`).
+    pub default_image_repository: String,
     /// Default image pull policy (default: `"Always"`).
     pub image_pull_policy: String,
+    /// Default container port (default: `8080`).
+    pub default_container_port: u16,
+    /// Default service type (default: `"ClusterIP"`).
+    pub default_service_type: String,
     /// Default CPU request (default: `"50m"`).
     pub cpu_request: String,
     /// Default memory request (default: `"64Mi"`).
@@ -52,7 +58,10 @@ impl Default for HelmConfig {
             default_chart_version: String::from("0.1.0"),
             default_app_version: String::from("1.0.0"),
             replica_count: 1,
+            default_image_repository: String::from("ghcr.io/pleme-io/placeholder"),
             image_pull_policy: String::from("Always"),
+            default_container_port: 8080,
+            default_service_type: String::from("ClusterIP"),
             cpu_request: String::from("50m"),
             memory_request: String::from("64Mi"),
             cpu_limit: String::from("200m"),
