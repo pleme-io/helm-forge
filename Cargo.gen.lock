@@ -1,8 +1,18 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "d64f713e835bdd483a96f08c82d5a42ab59a06cd8a2f47fbdb03b2afefd0cb5b",
+  "cargo_lock_sha256": "bb470b3d4333809717097841d7f323d3b64a1deb0a8e7d4e7c88a6677b198073",
   "target_resolves": {
     "base": {
+      "arrayref-0.3.9": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": []
+      },
+      "arrayvec-0.7.6": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": []
+      },
       "bitflags-2.11.0": {
         "runtime_dependencies": [],
         "build_dependencies": [],
@@ -10,10 +20,43 @@
           "std"
         ]
       },
+      "cc-1.2.63": {
+        "runtime_dependencies": [
+          {
+            "name": "find_msvc_tools",
+            "package_key": "find-msvc-tools-0.1.9",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "shlex",
+            "package_key": "shlex-2.0.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
       "cfg-if-1.0.4": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
+      },
+      "constant_time_eq-0.4.2": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": [
+          "std"
+        ]
       },
       "equivalent-1.0.2": {
         "runtime_dependencies": [],
@@ -66,6 +109,11 @@
           "default",
           "std"
         ]
+      },
+      "find-msvc-tools-0.1.9": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": []
       },
       "getrandom-0.4.2": {
         "runtime_dependencies": [
@@ -219,8 +267,28 @@
       "iac-forge-0.1.0": {
         "runtime_dependencies": [
           {
+            "name": "blake3",
+            "package_key": "blake3-1.8.5",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "meimei",
+            "package_key": "meimei-0.1.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
             "name": "openapi_forge",
-            "package_key": "openapi-forge-0.1.0",
+            "package_key": "openapi-forge-0.1.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -251,6 +319,16 @@
             "tree": "target"
           },
           {
+            "name": "takumi",
+            "package_key": "takumi-0.1.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
             "name": "thiserror",
             "package_key": "thiserror-2.0.18",
             "kind": "normal",
@@ -272,7 +350,9 @@
           }
         ],
         "build_dependencies": [],
-        "features": []
+        "features": [
+          "default"
+        ]
       },
       "indexmap-2.13.0": {
         "runtime_dependencies": [
@@ -326,6 +406,11 @@
           "std"
         ]
       },
+      "meimei-0.1.1": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": []
+      },
       "memchr-2.8.0": {
         "runtime_dependencies": [],
         "build_dependencies": [],
@@ -343,7 +428,7 @@
           "std"
         ]
       },
-      "openapi-forge-0.1.0": {
+      "openapi-forge-0.1.2": {
         "runtime_dependencies": [
           {
             "name": "indexmap",
@@ -352,6 +437,16 @@
             "features": [
               "serde"
             ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "sekkei",
+            "package_key": "sekkei-0.1.1",
+            "kind": "normal",
+            "features": [],
             "uses_default_features": true,
             "optional": false,
             "target": null,
@@ -382,6 +477,16 @@
           {
             "name": "serde_yaml_ng",
             "package_key": "serde_yaml_ng-0.10.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "takumi",
+            "package_key": "takumi-0.1.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -443,6 +548,54 @@
       },
       "ryu-1.0.23": {
         "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": []
+      },
+      "sekkei-0.1.1": {
+        "runtime_dependencies": [
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.228",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.149",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_yaml_ng",
+            "package_key": "serde_yaml_ng-0.10.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.18",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
         "build_dependencies": [],
         "features": []
       },
@@ -658,6 +811,14 @@
         "build_dependencies": [],
         "features": []
       },
+      "shlex-2.0.1": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": [
+          "default",
+          "std"
+        ]
+      },
       "syn-2.0.117": {
         "runtime_dependencies": [
           {
@@ -701,6 +862,56 @@
           "printing",
           "proc-macro"
         ]
+      },
+      "takumi-0.1.0": {
+        "runtime_dependencies": [
+          {
+            "name": "indexmap",
+            "package_key": "indexmap-2.13.0",
+            "kind": "normal",
+            "features": [
+              "serde"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "sekkei",
+            "package_key": "sekkei-0.1.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.228",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.149",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
       },
       "tempfile-3.27.0": {
         "runtime_dependencies": [
@@ -1006,6 +1217,66 @@
     "targets": {
       "aarch64-apple-darwin": {
         "overrides": {
+          "blake3-1.8.5": {
+            "runtime_dependencies": [
+              {
+                "name": "arrayref",
+                "package_key": "arrayref-0.3.9",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "arrayvec",
+                "package_key": "arrayvec-0.7.6",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "cfg_if",
+                "package_key": "cfg-if-1.0.4",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "constant_time_eq",
+                "package_key": "constant_time_eq-0.4.2",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [
+              {
+                "name": "cc",
+                "package_key": "cc-1.2.63",
+                "kind": "build",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "host"
+              }
+            ],
+            "features": [
+              "default",
+              "std"
+            ]
+          },
           "rustix-1.1.4": {
             "runtime_dependencies": [
               {
@@ -1081,6 +1352,81 @@
       },
       "x86_64-apple-darwin": {
         "overrides": {
+          "blake3-1.8.5": {
+            "runtime_dependencies": [
+              {
+                "name": "arrayref",
+                "package_key": "arrayref-0.3.9",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "arrayvec",
+                "package_key": "arrayvec-0.7.6",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "cfg_if",
+                "package_key": "cfg-if-1.0.4",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "constant_time_eq",
+                "package_key": "constant_time_eq-0.4.2",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "cpufeatures",
+                "package_key": "cpufeatures-0.3.0",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(any(target_arch = \"x86\", target_arch = \"x86_64\"))",
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [
+              {
+                "name": "cc",
+                "package_key": "cc-1.2.63",
+                "kind": "build",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "host"
+              }
+            ],
+            "features": [
+              "default",
+              "std"
+            ]
+          },
+          "cpufeatures-0.3.0": {
+            "runtime_dependencies": [],
+            "build_dependencies": [],
+            "features": []
+          },
           "rustix-1.1.4": {
             "runtime_dependencies": [
               {
@@ -1156,6 +1502,81 @@
       },
       "x86_64-unknown-linux-gnu": {
         "overrides": {
+          "blake3-1.8.5": {
+            "runtime_dependencies": [
+              {
+                "name": "arrayref",
+                "package_key": "arrayref-0.3.9",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "arrayvec",
+                "package_key": "arrayvec-0.7.6",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "cfg_if",
+                "package_key": "cfg-if-1.0.4",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "constant_time_eq",
+                "package_key": "constant_time_eq-0.4.2",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "cpufeatures",
+                "package_key": "cpufeatures-0.3.0",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(any(target_arch = \"x86\", target_arch = \"x86_64\"))",
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [
+              {
+                "name": "cc",
+                "package_key": "cc-1.2.63",
+                "kind": "build",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "host"
+              }
+            ],
+            "features": [
+              "default",
+              "std"
+            ]
+          },
+          "cpufeatures-0.3.0": {
+            "runtime_dependencies": [],
+            "build_dependencies": [],
+            "features": []
+          },
           "linux-raw-sys-0.12.1": {
             "runtime_dependencies": [],
             "build_dependencies": [],
@@ -1263,6 +1684,81 @@
       },
       "x86_64-unknown-linux-musl": {
         "overrides": {
+          "blake3-1.8.5": {
+            "runtime_dependencies": [
+              {
+                "name": "arrayref",
+                "package_key": "arrayref-0.3.9",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "arrayvec",
+                "package_key": "arrayvec-0.7.6",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "cfg_if",
+                "package_key": "cfg-if-1.0.4",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "constant_time_eq",
+                "package_key": "constant_time_eq-0.4.2",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "cpufeatures",
+                "package_key": "cpufeatures-0.3.0",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(any(target_arch = \"x86\", target_arch = \"x86_64\"))",
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [
+              {
+                "name": "cc",
+                "package_key": "cc-1.2.63",
+                "kind": "build",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "host"
+              }
+            ],
+            "features": [
+              "default",
+              "std"
+            ]
+          },
+          "cpufeatures-0.3.0": {
+            "runtime_dependencies": [],
+            "build_dependencies": [],
+            "features": []
+          },
           "linux-raw-sys-0.12.1": {
             "runtime_dependencies": [],
             "build_dependencies": [],
@@ -1370,6 +1866,66 @@
       },
       "aarch64-unknown-linux-gnu": {
         "overrides": {
+          "blake3-1.8.5": {
+            "runtime_dependencies": [
+              {
+                "name": "arrayref",
+                "package_key": "arrayref-0.3.9",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "arrayvec",
+                "package_key": "arrayvec-0.7.6",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "cfg_if",
+                "package_key": "cfg-if-1.0.4",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "constant_time_eq",
+                "package_key": "constant_time_eq-0.4.2",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [
+              {
+                "name": "cc",
+                "package_key": "cc-1.2.63",
+                "kind": "build",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "host"
+              }
+            ],
+            "features": [
+              "default",
+              "std"
+            ]
+          },
           "linux-raw-sys-0.12.1": {
             "runtime_dependencies": [],
             "build_dependencies": [],
@@ -1477,6 +2033,66 @@
       },
       "aarch64-unknown-linux-musl": {
         "overrides": {
+          "blake3-1.8.5": {
+            "runtime_dependencies": [
+              {
+                "name": "arrayref",
+                "package_key": "arrayref-0.3.9",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "arrayvec",
+                "package_key": "arrayvec-0.7.6",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "cfg_if",
+                "package_key": "cfg-if-1.0.4",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "constant_time_eq",
+                "package_key": "constant_time_eq-0.4.2",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [
+              {
+                "name": "cc",
+                "package_key": "cc-1.2.63",
+                "kind": "build",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "host"
+              }
+            ],
+            "features": [
+              "default",
+              "std"
+            ]
+          },
           "linux-raw-sys-0.12.1": {
             "runtime_dependencies": [],
             "build_dependencies": [],
@@ -1585,11 +2201,27 @@
     }
   },
   "per_crate": {
+    "arrayref-0.3.9": {
+      "edition": "2015"
+    },
+    "arrayvec-0.7.6": {
+      "edition": "2018"
+    },
     "bitflags-2.11.0": {
       "edition": "2021"
     },
+    "blake3-1.8.5": {
+      "edition": "2024",
+      "build_script": "build.rs"
+    },
+    "cc-1.2.63": {
+      "edition": "2018"
+    },
     "cfg-if-1.0.4": {
       "edition": "2018"
+    },
+    "constant_time_eq-0.4.2": {
+      "edition": "2024"
     },
     "equivalent-1.0.2": {
       "edition": "2015"
@@ -1598,6 +2230,9 @@
       "edition": "2018"
     },
     "fastrand-2.3.0": {
+      "edition": "2018"
+    },
+    "find-msvc-tools-0.1.9": {
       "edition": "2018"
     },
     "getrandom-0.4.2": {
@@ -1627,13 +2262,16 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
+    "meimei-0.1.1": {
+      "edition": "2024"
+    },
     "memchr-2.8.0": {
       "edition": "2021"
     },
     "once_cell-1.21.4": {
       "edition": "2021"
     },
-    "openapi-forge-0.1.0": {
+    "openapi-forge-0.1.2": {
       "edition": "2024"
     },
     "proc-macro2-1.0.106": {
@@ -1650,6 +2288,9 @@
     },
     "ryu-1.0.23": {
       "edition": "2021"
+    },
+    "sekkei-0.1.1": {
+      "edition": "2024"
     },
     "serde-1.0.228": {
       "edition": "2021",
@@ -1673,8 +2314,14 @@
     "serde_yaml_ng-0.10.0": {
       "edition": "2021"
     },
+    "shlex-2.0.1": {
+      "edition": "2018"
+    },
     "syn-2.0.117": {
       "edition": "2021"
+    },
+    "takumi-0.1.0": {
+      "edition": "2024"
     },
     "tempfile-3.27.0": {
       "edition": "2021"
@@ -1722,13 +2369,19 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
+    "cpufeatures-0.3.0": {
+      "edition": "2024"
+    },
     "linux-raw-sys-0.12.1": {
       "edition": "2021"
     }
   },
   "git_nar_sha256": {
-    "iac-forge-0.1.0": "sha256-1qpnlzMsegqIuXFDCAcATQaJy46sPZvhE7ADP2jW8+k=",
-    "openapi-forge-0.1.0": "sha256-pxo9jITx2B+xpSZLlHrezBCXm7+M04KRGFdW1XNSPPc="
+    "iac-forge-0.1.0": "sha256-JJLxk1jpaQtPyfHJLA1McpTd0llFQ9aKk9LbBxePyeI=",
+    "meimei-0.1.1": "sha256-GRqKw63sl3lo36lgwtYiMCk7A/egtmKts9UVGvK6WlI=",
+    "openapi-forge-0.1.2": "sha256-Nm6RurotLNuffZ0tdPERMhBwmTxf1rr1TJGELq27ErU=",
+    "sekkei-0.1.1": "sha256-qOa3MHGqWVhvbjmjHg0RJo0pfNSOXqEArNAQ0xfQNXw=",
+    "takumi-0.1.0": "sha256-neqseMVFLwd6TWIZAF4ylEkbAYzWUTzYYeDBDzYShNg="
   },
   "flake_metadata": {}
 }
