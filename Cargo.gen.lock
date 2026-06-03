@@ -2223,6 +2223,9 @@
     "constant_time_eq-0.4.2": {
       "edition": "2024"
     },
+    "cpufeatures-0.3.0": {
+      "edition": "2024"
+    },
     "equivalent-1.0.2": {
       "edition": "2015"
     },
@@ -2261,6 +2264,9 @@
     "libc-0.2.183": {
       "edition": "2021",
       "build_script": "build.rs"
+    },
+    "linux-raw-sys-0.12.1": {
+      "edition": "2021"
     },
     "meimei-0.1.1": {
       "edition": "2024"
@@ -2368,12 +2374,6 @@
     "zmij-1.0.21": {
       "edition": "2021",
       "build_script": "build.rs"
-    },
-    "cpufeatures-0.3.0": {
-      "edition": "2024"
-    },
-    "linux-raw-sys-0.12.1": {
-      "edition": "2021"
     }
   },
   "git_nar_sha256": {
