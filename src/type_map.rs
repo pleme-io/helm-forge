@@ -7,7 +7,7 @@ pub fn iac_type_to_json_schema(iac_type: &IacType) -> Value {
     match iac_type {
         IacType::String => json_schema_string(),
         IacType::Integer => json_schema_type("integer"),
-        IacType::Float => json_schema_type("number"),
+        IacType::Float | IacType::Numeric => json_schema_type("number"),
         IacType::Boolean => json_schema_type("boolean"),
         IacType::List(inner) | IacType::Set(inner) => {
             let mut obj = Map::new();
@@ -62,6 +62,9 @@ pub fn iac_type_to_json_schema(iac_type: &IacType) -> Value {
             // Empty schema allows any type
             Value::Object(Map::new())
         }
+        // IacType is #[non_exhaustive]: fall back to a permissive string
+        // schema for any future variant this crate hasn't been taught yet.
+        _ => json_schema_string(),
     }
 }
 

@@ -107,7 +107,9 @@ pub fn default_yaml_ng_value(iac_type: &IacType) -> serde_yaml_ng::Value {
     match iac_type {
         IacType::String | IacType::Any => serde_yaml_ng::Value::String(String::new()),
         IacType::Integer => serde_yaml_ng::Value::Number(0.into()),
-        IacType::Float => serde_yaml_ng::Value::Number(serde_yaml_ng::Number::from(0.0)),
+        IacType::Float | IacType::Numeric => {
+            serde_yaml_ng::Value::Number(serde_yaml_ng::Number::from(0.0))
+        }
         IacType::Boolean => serde_yaml_ng::Value::Bool(false),
         IacType::List(_) | IacType::Set(_) => {
             serde_yaml_ng::Value::Sequence(serde_yaml_ng::Sequence::new())
@@ -118,6 +120,9 @@ pub fn default_yaml_ng_value(iac_type: &IacType) -> serde_yaml_ng::Value {
         IacType::Enum { values, .. } => {
             serde_yaml_ng::Value::String(values.first().cloned().unwrap_or_default())
         }
+        // IacType is #[non_exhaustive]: fall back to an empty string for
+        // any future variant this crate hasn't been taught yet.
+        _ => serde_yaml_ng::Value::String(String::new()),
     }
 }
 
@@ -127,7 +132,7 @@ pub fn default_yaml_value(iac_type: &IacType) -> String {
     match iac_type {
         IacType::String => "\"\"".into(),
         IacType::Integer => "0".into(),
-        IacType::Float => "0.0".into(),
+        IacType::Float | IacType::Numeric => "0.0".into(),
         IacType::Boolean => "false".into(),
         IacType::List(_) | IacType::Set(_) => "[]".into(),
         IacType::Map(_) | IacType::Object { .. } => "{}".into(),
@@ -139,6 +144,9 @@ pub fn default_yaml_value(iac_type: &IacType) -> String {
             }
         }
         IacType::Any => "\"\"".into(),
+        // IacType is #[non_exhaustive]: fall back to an empty string for
+        // any future variant this crate hasn't been taught yet.
+        _ => "\"\"".into(),
     }
 }
 

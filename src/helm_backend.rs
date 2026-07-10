@@ -230,84 +230,84 @@ impl Backend for HelmBackend {
         let mut _stage = GenerationStage::Init;
 
         // Stage: ChartMetadata
-        artifacts.push(GeneratedArtifact {
-            path: format!("{base}/Chart.yaml"),
-            content: self.chart_gen.generate(resource, &provider.name),
-            kind: ArtifactKind::Resource,
-        });
+        artifacts.push(GeneratedArtifact::new(
+            format!("{base}/Chart.yaml"),
+            self.chart_gen.generate(resource, &provider.name),
+            ArtifactKind::Resource,
+        ));
         _stage = GenerationStage::ChartMetadata;
 
         // Stage: Values
-        artifacts.push(GeneratedArtifact {
-            path: format!("{base}/values.yaml"),
-            content: self.values_gen.generate(resource),
-            kind: ArtifactKind::Resource,
-        });
+        artifacts.push(GeneratedArtifact::new(
+            format!("{base}/values.yaml"),
+            self.values_gen.generate(resource),
+            ArtifactKind::Resource,
+        ));
         _stage = GenerationStage::Values;
 
         // Stage: Schema
-        artifacts.push(GeneratedArtifact {
-            path: format!("{base}/values.schema.json"),
-            content: self.schema_gen.generate(resource),
-            kind: ArtifactKind::Schema,
-        });
+        artifacts.push(GeneratedArtifact::new(
+            format!("{base}/values.schema.json"),
+            self.schema_gen.generate(resource),
+            ArtifactKind::Schema,
+        ));
         _stage = GenerationStage::Schema;
 
         // Stage: Templates
-        artifacts.push(GeneratedArtifact {
-            path: format!("{base}/templates/_helpers.tpl"),
-            content: self.template_gen.helpers(resource),
-            kind: ArtifactKind::Resource,
-        });
+        artifacts.push(GeneratedArtifact::new(
+            format!("{base}/templates/_helpers.tpl"),
+            self.template_gen.helpers(resource),
+            ArtifactKind::Resource,
+        ));
 
         for (file, content) in self.template_gen.delegate_templates() {
-            artifacts.push(GeneratedArtifact {
-                path: format!("{base}/templates/{file}"),
+            artifacts.push(GeneratedArtifact::new(
+                format!("{base}/templates/{file}"),
                 content,
-                kind: ArtifactKind::Resource,
-            });
+                ArtifactKind::Resource,
+            ));
         }
 
         let configmap = self.template_gen.configmap(resource);
         if !configmap.is_empty() {
-            artifacts.push(GeneratedArtifact {
-                path: format!("{base}/templates/configmap.yaml"),
-                content: configmap,
-                kind: ArtifactKind::Resource,
-            });
+            artifacts.push(GeneratedArtifact::new(
+                format!("{base}/templates/configmap.yaml"),
+                configmap,
+                ArtifactKind::Resource,
+            ));
         }
 
         let secret = self.template_gen.secret(resource);
         if !secret.is_empty() {
-            artifacts.push(GeneratedArtifact {
-                path: format!("{base}/templates/secret.yaml"),
-                content: secret,
-                kind: ArtifactKind::Resource,
-            });
+            artifacts.push(GeneratedArtifact::new(
+                format!("{base}/templates/secret.yaml"),
+                secret,
+                ArtifactKind::Resource,
+            ));
         }
 
-        artifacts.push(GeneratedArtifact {
-            path: format!("{base}/templates/prometheusrule.yaml"),
-            content: self.template_gen.prometheusrule(resource),
-            kind: ArtifactKind::Resource,
-        });
+        artifacts.push(GeneratedArtifact::new(
+            format!("{base}/templates/prometheusrule.yaml"),
+            self.template_gen.prometheusrule(resource),
+            ArtifactKind::Resource,
+        ));
         _stage = GenerationStage::Templates;
 
         // Stage: Tests
-        artifacts.push(GeneratedArtifact {
-            path: format!("{base}/tests/deployment_test.yaml"),
-            content: self.test_gen.generate(resource),
-            kind: ArtifactKind::Test,
-        });
+        artifacts.push(GeneratedArtifact::new(
+            format!("{base}/tests/deployment_test.yaml"),
+            self.test_gen.generate(resource),
+            ArtifactKind::Test,
+        ));
         _stage = GenerationStage::Done;
 
         // FluxCD HelmRelease (optional)
         if let Some(ref fluxcd) = self.fluxcd_gen {
-            artifacts.push(GeneratedArtifact {
-                path: format!("fluxcd/helmrelease-{chart_name}.yaml"),
-                content: fluxcd.generate(resource, &provider.name),
-                kind: ArtifactKind::Metadata,
-            });
+            artifacts.push(GeneratedArtifact::new(
+                format!("fluxcd/helmrelease-{chart_name}.yaml"),
+                fluxcd.generate(resource, &provider.name),
+                ArtifactKind::Metadata,
+            ));
         }
 
         Ok(artifacts)
@@ -330,11 +330,11 @@ impl Backend for HelmBackend {
         let mut artifacts = Vec::new();
 
         if self.fluxcd_gen.is_some() {
-            artifacts.push(GeneratedArtifact {
-                path: "fluxcd/kustomization.yaml".into(),
-                content: generate_kustomization(resources),
-                kind: ArtifactKind::Metadata,
-            });
+            artifacts.push(GeneratedArtifact::new(
+                "fluxcd/kustomization.yaml",
+                generate_kustomization(resources),
+                ArtifactKind::Metadata,
+            ));
         }
 
         Ok(artifacts)
@@ -348,11 +348,11 @@ impl Backend for HelmBackend {
         let chart_name = iac_forge::to_kebab_case(&resource.name);
         let base = format!("charts/{chart_name}");
 
-        Ok(vec![GeneratedArtifact {
-            path: format!("{base}/tests/deployment_test.yaml"),
-            content: self.test_gen.generate(resource),
-            kind: ArtifactKind::Test,
-        }])
+        Ok(vec![GeneratedArtifact::new(
+            format!("{base}/tests/deployment_test.yaml"),
+            self.test_gen.generate(resource),
+            ArtifactKind::Test,
+        )])
     }
 
     fn naming(&self) -> &dyn NamingConvention {
