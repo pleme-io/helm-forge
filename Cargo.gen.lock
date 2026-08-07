@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "b75a9cab6d7c63c99400c9a91f6c3cb0da93d2eb2dd608940e82ddd6bd6bacfa",
+  "cargo_lock_sha256": "e55f1e10032753c1f013e79d9be2a226a0882ab80adcad807888dde05ebb0178",
   "manifest_sha256": {
-    "Cargo.toml": "81f8248d40cd540c56925a6e21e30f74a5c722d2ee4ab13288f26390fd1a17a7"
+    "Cargo.toml": "eceece52f28d7819c3047dfc83c9cab6709371ac53232bb16e76b8ab6a8a3663"
   },
   "target_resolves": {
     "base": {
@@ -219,7 +219,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "helm-forge-0.1.0": {
+      "helm-forge-0.1.1": {
         "runtime_dependencies": [
           {
             "name": "iac_forge",
@@ -2280,7 +2280,7 @@
     "hashbrown-0.17.1": {
       "edition": "2024"
     },
-    "helm-forge-0.1.0": {
+    "helm-forge-0.1.1": {
       "edition": "2024",
       "lib_target": {
         "name": "helm_forge",
