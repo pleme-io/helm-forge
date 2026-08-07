@@ -14,7 +14,7 @@ keywords = ["helm", "kubernetes", "codegen", "openapi", "iac"]
 pedantic = "warn"
 
 [dependencies]
-iac-forge = { git = "https://github.com/pleme-io/iac-forge" }
+iac-forge = "0.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml_ng = "0.10"
