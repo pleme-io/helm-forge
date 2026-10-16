@@ -10,8 +10,12 @@ pub fn schema_value<T: JsonSchema>() -> Value {
 }
 
 #[must_use]
-pub fn sealed_schema_value<T: JsonSchema>() -> Value {
-    let mut value = schema_value::<T>();
+pub fn strict_schema_value<T: JsonSchema>() -> Value {
+    let settings = schemars::r#gen::SchemaSettings::draft07().with(|s| {
+        s.option_add_null_type = false;
+    });
+    let schema = settings.into_generator().into_root_schema_for::<T>();
+    let mut value = serde_json::to_value(schema).expect("a schemars schema serializes");
     seal(&mut value);
     bound_integers(&mut value);
     value
@@ -184,15 +188,18 @@ mod tests {
         free: std::collections::BTreeMap<String, String>,
         keep: u8,
         drop: u8,
+        maybe: Option<u32>,
     }
 
     #[test]
     fn seal_closes_every_owned_object_and_leaves_maps_open() {
-        let v = sealed_schema_value::<Outer>();
+        let v = strict_schema_value::<Outer>();
         assert_eq!(v["additionalProperties"], Value::Bool(false));
         assert_eq!(v["definitions"]["Inner"]["additionalProperties"], Value::Bool(false));
         assert_eq!(v["properties"]["free"]["additionalProperties"]["type"], "string");
         assert_eq!(v["properties"]["keep"]["maximum"], 255);
+        assert_eq!(v["properties"]["maybe"]["type"], "integer");
+        assert!(!v["required"].as_array().unwrap().iter().any(|r| r == "maybe"));
     }
 
     #[test]
