@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "e55f1e10032753c1f013e79d9be2a226a0882ab80adcad807888dde05ebb0178",
+  "cargo_lock_sha256": "74c9fdbd925b5c36119ceb3534ae2079f4f747904547febdb1e53c0282d18ba3",
   "manifest_sha256": {
-    "Cargo.toml": "eceece52f28d7819c3047dfc83c9cab6709371ac53232bb16e76b8ab6a8a3663"
+    "Cargo.toml": "6bec0c77caf9747e1438011323db5f9589b64e52f0340869cc97c32914f2c443"
   },
   "target_resolves": {
     "base": {
@@ -227,7 +227,7 @@
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
-            "optional": false,
+            "optional": true,
             "target": null,
             "tree": "target"
           },
@@ -259,13 +259,16 @@
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
-            "optional": false,
+            "optional": true,
             "target": null,
             "tree": "target"
           }
         ],
         "build_dependencies": [],
-        "features": []
+        "features": [
+          "backend",
+          "default"
+        ]
       },
       "iac-forge-0.1.5": {
         "runtime_dependencies": [

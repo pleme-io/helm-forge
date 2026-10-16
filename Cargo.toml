@@ -14,10 +14,20 @@ keywords = ["helm", "kubernetes", "codegen", "openapi", "iac"]
 pedantic = "warn"
 
 [dependencies]
-iac-forge = "0.1"
+iac-forge = { version = "0.1", optional = true }
+schemars = { version = "0.8", optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-serde_yaml_ng = "0.10"
+serde_yaml_ng = { version = "0.10", optional = true }
+
+[features]
+default = ["backend"]
+backend = ["dep:iac-forge", "dep:serde_yaml_ng"]
+values-schema = ["dep:schemars"]
+
+[[test]]
+name = "integration"
+required-features = ["backend"]
 
 [dev-dependencies]
 tempfile = "3"
