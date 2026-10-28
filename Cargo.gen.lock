@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "1ee12c15a8c8d9a85cf477b976ac67566a5ce801dcb0108123dbf37da6a47d03",
+  "cargo_lock_sha256": "6531636706f6e4c0588e8bdba647dd26fb9e46a93ed5e5ed26b52263590bb0b0",
   "manifest_sha256": {
-    "Cargo.toml": "cd0dc3af5372234776fc24652518c3ab38db9c6dab3170646f3d3ccede9e496b"
+    "Cargo.toml": "ac36159bea771b6f7bdb976ae19bdebef85ce93f73ef7f266a7cfcd96a533a97"
   },
   "target_resolves": {
     "base": {
@@ -18,11 +18,11 @@
           "std"
         ]
       },
-      "cc-1.8.0": {
+      "cc-1.10.0": {
         "runtime_dependencies": [
           {
             "name": "find_msvc_tools",
-            "package_key": "find-msvc-tools-0.1.14",
+            "package_key": "find-msvc-tools-0.1.15",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -65,7 +65,7 @@
         "runtime_dependencies": [
           {
             "name": "libc",
-            "package_key": "libc-0.2.190",
+            "package_key": "libc-0.2.191",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -75,7 +75,7 @@
           },
           {
             "name": "libc",
-            "package_key": "libc-0.2.190",
+            "package_key": "libc-0.2.191",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -85,7 +85,7 @@
           },
           {
             "name": "libc",
-            "package_key": "libc-0.2.190",
+            "package_key": "libc-0.2.191",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -108,7 +108,7 @@
           "std"
         ]
       },
-      "find-msvc-tools-0.1.14": {
+      "find-msvc-tools-0.1.15": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -127,7 +127,7 @@
           },
           {
             "name": "libc",
-            "package_key": "libc-0.2.190",
+            "package_key": "libc-0.2.191",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -137,7 +137,7 @@
           },
           {
             "name": "libc",
-            "package_key": "libc-0.2.190",
+            "package_key": "libc-0.2.191",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -147,7 +147,7 @@
           },
           {
             "name": "libc",
-            "package_key": "libc-0.2.190",
+            "package_key": "libc-0.2.191",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -157,7 +157,7 @@
           },
           {
             "name": "libc",
-            "package_key": "libc-0.2.190",
+            "package_key": "libc-0.2.191",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -167,7 +167,7 @@
           },
           {
             "name": "libc",
-            "package_key": "libc-0.2.190",
+            "package_key": "libc-0.2.191",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -177,7 +177,7 @@
           },
           {
             "name": "libc",
-            "package_key": "libc-0.2.190",
+            "package_key": "libc-0.2.191",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -187,7 +187,7 @@
           },
           {
             "name": "libc",
-            "package_key": "libc-0.2.190",
+            "package_key": "libc-0.2.191",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -197,7 +197,7 @@
           },
           {
             "name": "libc",
-            "package_key": "libc-0.2.190",
+            "package_key": "libc-0.2.191",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -214,7 +214,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "helm-forge-0.1.2": {
+      "helm-forge-0.1.3": {
         "runtime_dependencies": [
           {
             "name": "iac_forge",
@@ -400,7 +400,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "libc-0.2.190": {
+      "libc-0.2.191": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": [
@@ -1005,7 +1005,7 @@
           },
           {
             "name": "rustix",
-            "package_key": "rustix-1.1.5",
+            "package_key": "rustix-1.1.6",
             "kind": "normal",
             "features": [
               "fs"
@@ -1303,7 +1303,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.8.0",
+                "package_key": "cc-1.10.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -1317,7 +1317,7 @@
               "std"
             ]
           },
-          "rustix-1.1.5": {
+          "rustix-1.1.6": {
             "runtime_dependencies": [
               {
                 "name": "bitflags",
@@ -1361,7 +1361,7 @@
               },
               {
                 "name": "libc",
-                "package_key": "libc-0.2.190",
+                "package_key": "libc-0.2.191",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -1371,7 +1371,7 @@
               },
               {
                 "name": "libc",
-                "package_key": "libc-0.2.190",
+                "package_key": "libc-0.2.191",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -1428,7 +1428,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.8.0",
+                "package_key": "cc-1.10.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -1454,7 +1454,7 @@
               "no_std"
             ]
           },
-          "rustix-1.1.5": {
+          "rustix-1.1.6": {
             "runtime_dependencies": [
               {
                 "name": "bitflags",
@@ -1498,7 +1498,7 @@
               },
               {
                 "name": "libc",
-                "package_key": "libc-0.2.190",
+                "package_key": "libc-0.2.191",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -1508,7 +1508,7 @@
               },
               {
                 "name": "libc",
-                "package_key": "libc-0.2.190",
+                "package_key": "libc-0.2.191",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -1596,7 +1596,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.8.0",
+                "package_key": "cc-1.10.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -1622,7 +1622,7 @@
               "no_std"
             ]
           },
-          "rustix-1.1.5": {
+          "rustix-1.1.6": {
             "runtime_dependencies": [
               {
                 "name": "bitflags",
@@ -1666,7 +1666,7 @@
               },
               {
                 "name": "libc",
-                "package_key": "libc-0.2.190",
+                "package_key": "libc-0.2.191",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -1676,7 +1676,7 @@
               },
               {
                 "name": "libc",
-                "package_key": "libc-0.2.190",
+                "package_key": "libc-0.2.191",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -1774,7 +1774,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.8.0",
+                "package_key": "cc-1.10.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -1793,7 +1793,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "rustix-1.1.5": {
+          "rustix-1.1.6": {
             "runtime_dependencies": [
               {
                 "name": "bitflags",
@@ -1837,7 +1837,7 @@
               },
               {
                 "name": "libc",
-                "package_key": "libc-0.2.190",
+                "package_key": "libc-0.2.191",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -1847,7 +1847,7 @@
               },
               {
                 "name": "libc",
-                "package_key": "libc-0.2.190",
+                "package_key": "libc-0.2.191",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -1914,7 +1914,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.8.0",
+                "package_key": "cc-1.10.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -1945,7 +1945,7 @@
               "no_std"
             ]
           },
-          "rustix-1.1.5": {
+          "rustix-1.1.6": {
             "runtime_dependencies": [
               {
                 "name": "bitflags",
@@ -1989,7 +1989,7 @@
               },
               {
                 "name": "libc",
-                "package_key": "libc-0.2.190",
+                "package_key": "libc-0.2.191",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -1999,7 +1999,7 @@
               },
               {
                 "name": "libc",
-                "package_key": "libc-0.2.190",
+                "package_key": "libc-0.2.191",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -2097,7 +2097,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.8.0",
+                "package_key": "cc-1.10.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -2128,7 +2128,7 @@
               "no_std"
             ]
           },
-          "rustix-1.1.5": {
+          "rustix-1.1.6": {
             "runtime_dependencies": [
               {
                 "name": "bitflags",
@@ -2172,7 +2172,7 @@
               },
               {
                 "name": "libc",
-                "package_key": "libc-0.2.190",
+                "package_key": "libc-0.2.191",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -2182,7 +2182,7 @@
               },
               {
                 "name": "libc",
-                "package_key": "libc-0.2.190",
+                "package_key": "libc-0.2.191",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -2245,7 +2245,7 @@
       "edition": "2024",
       "build_script": "build.rs"
     },
-    "cc-1.8.0": {
+    "cc-1.10.0": {
       "edition": "2021"
     },
     "cfg-if-1.0.5": {
@@ -2266,7 +2266,7 @@
     "fastrand-2.5.0": {
       "edition": "2018"
     },
-    "find-msvc-tools-0.1.14": {
+    "find-msvc-tools-0.1.15": {
       "edition": "2021"
     },
     "getrandom-0.4.3": {
@@ -2276,7 +2276,7 @@
     "hashbrown-0.17.1": {
       "edition": "2024"
     },
-    "helm-forge-0.1.2": {
+    "helm-forge-0.1.3": {
       "edition": "2024",
       "lib_target": {
         "name": "helm_forge",
@@ -2292,7 +2292,7 @@
     "itoa-1.0.18": {
       "edition": "2021"
     },
-    "libc-0.2.190": {
+    "libc-0.2.191": {
       "edition": "2021",
       "build_script": "build.rs"
     },
@@ -2322,7 +2322,7 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "rustix-1.1.5": {
+    "rustix-1.1.6": {
       "edition": "2021",
       "build_script": "build.rs"
     },
