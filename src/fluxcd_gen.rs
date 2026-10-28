@@ -297,7 +297,7 @@ mod tests {
         let resource = test_resource("static_secret");
         let yaml_str = generate_helmrelease(&resource, "akeyless", &FluxCdConfig::default());
         let doc: serde_json::Value =
-            serde_yaml_ng::from_str(&yaml_str).expect("HelmRelease must be valid YAML");
+            serde_norway::from_str(&yaml_str).expect("HelmRelease must be valid YAML");
         assert_eq!(doc["apiVersion"], "helm.toolkit.fluxcd.io/v2");
         assert_eq!(doc["kind"], "HelmRelease");
         assert_eq!(doc["metadata"]["name"], "static-secret");
@@ -369,7 +369,7 @@ mod tests {
         ];
         let yaml_str = generate_kustomization(&resources);
         let doc: serde_json::Value =
-            serde_yaml_ng::from_str(&yaml_str).expect("kustomization must be valid YAML");
+            serde_norway::from_str(&yaml_str).expect("kustomization must be valid YAML");
         assert_eq!(doc["apiVersion"], "kustomize.config.k8s.io/v1beta1");
         assert_eq!(doc["kind"], "Kustomization");
         let res_arr = doc["resources"].as_array().expect("resources should be array");

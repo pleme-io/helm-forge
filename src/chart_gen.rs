@@ -19,7 +19,7 @@ pub fn generate_chart_yaml_with_config(
     config: &HelmConfig,
 ) -> String {
     let chart = build_chart_yaml(resource, provider_name, config);
-    serde_yaml_ng::to_string(&chart).expect("ChartYaml serialization cannot fail")
+    serde_norway::to_string(&chart).expect("ChartYaml serialization cannot fail")
 }
 
 /// Build a [`ChartYaml`] struct from a resource, provider, and config.
@@ -80,8 +80,8 @@ mod tests {
     fn round_trips_through_serde() {
         let resource = test_resource("static_secret");
         let chart = build_chart_yaml(&resource, "akeyless", &HelmConfig::default());
-        let yaml = serde_yaml_ng::to_string(&chart).unwrap();
-        let parsed: ChartYaml = serde_yaml_ng::from_str(&yaml).unwrap();
+        let yaml = serde_norway::to_string(&chart).unwrap();
+        let parsed: ChartYaml = serde_norway::from_str(&yaml).unwrap();
         assert_eq!(chart, parsed);
     }
 

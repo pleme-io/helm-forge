@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 
 /// A Helm `Chart.yaml` file.
 ///
-/// Serializes to valid Helm Chart.yaml via `serde_yaml_ng::to_string()`.
+/// Serializes to valid Helm Chart.yaml via `serde_norway::to_string()`.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ChartYaml {
@@ -48,7 +48,7 @@ pub struct ChartDependency {
 
 /// A Helm `values.yaml` file.
 ///
-/// Serializes to valid Helm values.yaml via `serde_yaml_ng::to_string()`.
+/// Serializes to valid Helm values.yaml via `serde_norway::to_string()`.
 /// Supports optional sections that are omitted when `None`.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -58,7 +58,7 @@ pub struct ValuesYaml {
     pub ports: Vec<PortConfig>,
     pub service: ServiceConfig,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub config: Option<BTreeMap<String, serde_yaml_ng::Value>>,
+    pub config: Option<BTreeMap<String, serde_norway::Value>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secrets: Option<BTreeMap<String, String>>,
     pub resources: ResourcesConfig,
@@ -175,8 +175,8 @@ mod tests {
             ]),
         };
 
-        let yaml = serde_yaml_ng::to_string(&chart).unwrap();
-        let parsed: ChartYaml = serde_yaml_ng::from_str(&yaml).unwrap();
+        let yaml = serde_norway::to_string(&chart).unwrap();
+        let parsed: ChartYaml = serde_norway::from_str(&yaml).unwrap();
         assert_eq!(chart, parsed);
     }
 
@@ -192,7 +192,7 @@ mod tests {
             dependencies: vec![],
             annotations: BTreeMap::new(),
         };
-        let yaml = serde_yaml_ng::to_string(&chart).unwrap();
+        let yaml = serde_norway::to_string(&chart).unwrap();
         assert!(yaml.contains("apiVersion: v2"));
         assert!(yaml.contains("appVersion:"));
         assert!(yaml.contains("type: application"));
@@ -243,7 +243,7 @@ mod tests {
             ports: default_ports(),
             service: default_service(),
             config: Some(BTreeMap::from([
-                ("key".into(), serde_yaml_ng::Value::String("value".into())),
+                ("key".into(), serde_norway::Value::String("value".into())),
             ])),
             secrets: Some(BTreeMap::from([("api_key".into(), "".into())])),
             resources: ResourcesConfig {
@@ -262,8 +262,8 @@ mod tests {
             autoscaling: ToggleConfig::off(),
         };
 
-        let yaml = serde_yaml_ng::to_string(&values).unwrap();
-        let parsed: ValuesYaml = serde_yaml_ng::from_str(&yaml).unwrap();
+        let yaml = serde_norway::to_string(&values).unwrap();
+        let parsed: ValuesYaml = serde_norway::from_str(&yaml).unwrap();
         assert_eq!(values, parsed);
     }
 
@@ -289,7 +289,7 @@ mod tests {
             pdb: ToggleConfig::off(),
             autoscaling: ToggleConfig::off(),
         };
-        let yaml = serde_yaml_ng::to_string(&values).unwrap();
+        let yaml = serde_norway::to_string(&values).unwrap();
         assert!(!yaml.contains("config:"));
         assert!(!yaml.contains("secrets:"));
     }

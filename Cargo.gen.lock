@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "dcacc4335f2e9df88e76e908cb1b0d94493ea341b717cc08f411db65e68cf5a6",
+  "cargo_lock_sha256": "1ee12c15a8c8d9a85cf477b976ac67566a5ce801dcb0108123dbf37da6a47d03",
   "manifest_sha256": {
-    "Cargo.toml": "6b5562c140dfc9a9def6714740c3859743578018260f06ff503e3df0659abd0f"
+    "Cargo.toml": "cd0dc3af5372234776fc24652518c3ab38db9c6dab3170646f3d3ccede9e496b"
   },
   "target_resolves": {
     "base": {
@@ -249,8 +249,8 @@
             "tree": "target"
           },
           {
-            "name": "serde_yaml_ng",
-            "package_key": "serde_yaml_ng-0.10.0",
+            "name": "serde_norway",
+            "package_key": "serde_norway-0.9.42",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -788,6 +788,62 @@
           "std"
         ]
       },
+      "serde_norway-0.9.42": {
+        "runtime_dependencies": [
+          {
+            "name": "indexmap",
+            "package_key": "indexmap-2.14.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "itoa",
+            "package_key": "itoa-1.0.18",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "ryu",
+            "package_key": "ryu-1.0.23",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.229",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "unsafe_libyaml_norway",
+            "package_key": "unsafe-libyaml-norway-0.2.15",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
       "serde_spanned-0.6.9": {
         "runtime_dependencies": [
           {
@@ -1184,6 +1240,11 @@
         "features": []
       },
       "unsafe-libyaml-0.2.11": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": []
+      },
+      "unsafe-libyaml-norway-0.2.15": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -2287,6 +2348,9 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
+    "serde_norway-0.9.42": {
+      "edition": "2021"
+    },
     "serde_spanned-0.6.9": {
       "edition": "2021"
     },
@@ -2326,6 +2390,19 @@
       "edition": "2021"
     },
     "unsafe-libyaml-0.2.11": {
+      "edition": "2021",
+      "binaries": [
+        {
+          "name": "run-emitter-test-suite",
+          "path": "src/bin/run-emitter-test-suite.rs"
+        },
+        {
+          "name": "run-parser-test-suite",
+          "path": "src/bin/run-parser-test-suite.rs"
+        }
+      ]
+    },
+    "unsafe-libyaml-norway-0.2.15": {
       "edition": "2021",
       "binaries": [
         {

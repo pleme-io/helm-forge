@@ -18,11 +18,11 @@ iac-forge = { version = "0.1", optional = true }
 schemars = { version = "0.8", optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-serde_yaml_ng = { version = "0.10", optional = true }
+serde_norway = { version = "0.9", optional = true }
 
 [features]
 default = ["backend"]
-backend = ["dep:iac-forge", "dep:serde_yaml_ng"]
+backend = ["dep:iac-forge", "dep:serde_norway"]
 values-schema = ["dep:schemars"]
 
 [[test]]

@@ -19,7 +19,7 @@ pub fn generate_values_yaml(resource: &IacResource) -> String {
 #[must_use]
 pub fn generate_values_yaml_with_config(resource: &IacResource, config: &HelmConfig) -> String {
     let values = build_values_yaml(resource, config);
-    serde_yaml_ng::to_string(&values).expect("ValuesYaml serialization cannot fail")
+    serde_norway::to_string(&values).expect("ValuesYaml serialization cannot fail")
 }
 
 /// Build a [`ValuesYaml`] struct from a resource and config.
@@ -101,28 +101,28 @@ pub fn build_values_yaml(resource: &IacResource, config: &HelmConfig) -> ValuesY
     }
 }
 
-/// Map an `IacType` to a sensible `serde_yaml_ng::Value` default.
+/// Map an `IacType` to a sensible `serde_norway::Value` default.
 #[must_use]
-pub fn default_yaml_ng_value(iac_type: &IacType) -> serde_yaml_ng::Value {
+pub fn default_yaml_ng_value(iac_type: &IacType) -> serde_norway::Value {
     match iac_type {
-        IacType::String | IacType::Any => serde_yaml_ng::Value::String(String::new()),
-        IacType::Integer => serde_yaml_ng::Value::Number(0.into()),
+        IacType::String | IacType::Any => serde_norway::Value::String(String::new()),
+        IacType::Integer => serde_norway::Value::Number(0.into()),
         IacType::Float | IacType::Numeric => {
-            serde_yaml_ng::Value::Number(serde_yaml_ng::Number::from(0.0))
+            serde_norway::Value::Number(serde_norway::Number::from(0.0))
         }
-        IacType::Boolean => serde_yaml_ng::Value::Bool(false),
+        IacType::Boolean => serde_norway::Value::Bool(false),
         IacType::List(_) | IacType::Set(_) => {
-            serde_yaml_ng::Value::Sequence(serde_yaml_ng::Sequence::new())
+            serde_norway::Value::Sequence(serde_norway::Sequence::new())
         }
         IacType::Map(_) | IacType::Object { .. } => {
-            serde_yaml_ng::Value::Mapping(serde_yaml_ng::Mapping::new())
+            serde_norway::Value::Mapping(serde_norway::Mapping::new())
         }
         IacType::Enum { values, .. } => {
-            serde_yaml_ng::Value::String(values.first().cloned().unwrap_or_default())
+            serde_norway::Value::String(values.first().cloned().unwrap_or_default())
         }
         // IacType is #[non_exhaustive]: fall back to an empty string for
         // any future variant this crate hasn't been taught yet.
-        _ => serde_yaml_ng::Value::String(String::new()),
+        _ => serde_norway::Value::String(String::new()),
     }
 }
 
@@ -171,8 +171,8 @@ mod tests {
     fn round_trips_through_serde() {
         let resource = test_resource("static_secret");
         let values = build_values_yaml(&resource, &HelmConfig::default());
-        let yaml = serde_yaml_ng::to_string(&values).unwrap();
-        let parsed: ValuesYaml = serde_yaml_ng::from_str(&yaml).unwrap();
+        let yaml = serde_norway::to_string(&values).unwrap();
+        let parsed: ValuesYaml = serde_norway::from_str(&yaml).unwrap();
         assert_eq!(values, parsed);
     }
 

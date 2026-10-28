@@ -88,7 +88,7 @@ fn all_templates_have_valid_helm_syntax() {
 fn chart_yaml_is_parseable_yaml() {
     let resource = test_resource("static_secret");
     let yaml_str = generate_chart_yaml(&resource, "akeyless");
-    let doc: serde_json::Value = serde_yaml_ng::from_str(&yaml_str).expect("Chart.yaml must be valid YAML");
+    let doc: serde_json::Value = serde_norway::from_str(&yaml_str).expect("Chart.yaml must be valid YAML");
     assert_eq!(doc["apiVersion"], "v2");
     assert_eq!(doc["name"], "static-secret");
     assert_eq!(doc["type"], "application");
@@ -153,7 +153,7 @@ fn all_config_fields_propagate_to_output() {
 
     // Verify via deserialization (format-agnostic, struct-level assertions)
     let chart_str = &artifacts.iter().find(|a| a.path.ends_with("Chart.yaml")).unwrap().content;
-    let chart: helm_forge::ChartYaml = serde_yaml_ng::from_str(chart_str).unwrap();
+    let chart: helm_forge::ChartYaml = serde_norway::from_str(chart_str).unwrap();
     assert_eq!(chart.dependencies[0].name, "custom-lib");
     assert_eq!(chart.dependencies[0].version, "~2.0.0");
     assert_eq!(chart.dependencies[0].repository, "https://charts.example.com");
@@ -161,7 +161,7 @@ fn all_config_fields_propagate_to_output() {
     assert_eq!(chart.app_version, "9.8.7");
 
     let values_str = &artifacts.iter().find(|a| a.path.ends_with("values.yaml")).unwrap().content;
-    let values: helm_forge::ValuesYaml = serde_yaml_ng::from_str(values_str).unwrap();
+    let values: helm_forge::ValuesYaml = serde_norway::from_str(values_str).unwrap();
     assert_eq!(values.resources.requests.cpu, "999m");
     assert_eq!(values.resources.requests.memory, "999Mi");
     assert_eq!(values.resources.limits.cpu, "9999m");
@@ -293,7 +293,7 @@ fn all_iac_types_produce_valid_yaml_defaults() {
         let yaml = generate_values_yaml(&resource);
         // Must produce valid YAML that serde can parse back
         let parsed: helm_forge::ValuesYaml =
-            serde_yaml_ng::from_str(&yaml).expect("must produce valid YAML");
+            serde_norway::from_str(&yaml).expect("must produce valid YAML");
         assert!(parsed.config.is_some(), "config section should exist for non-sensitive attr");
     }
 }
@@ -356,7 +356,7 @@ fn enum_default_value_in_values_yaml() {
         .build(),
     );
     let yaml = generate_values_yaml(&resource);
-    let parsed: helm_forge::ValuesYaml = serde_yaml_ng::from_str(&yaml).unwrap();
+    let parsed: helm_forge::ValuesYaml = serde_norway::from_str(&yaml).unwrap();
     let config = parsed.config.expect("should have config section");
     let mode_val = config.get("mode").expect("should have mode field");
     assert_eq!(mode_val.as_str().unwrap(), "fast", "enum default should be first value");
@@ -671,7 +671,7 @@ fn monitoring_schema_has_alerting_section() {
 fn fluxcd_helmrelease_is_valid_yaml_with_all_fields() {
     let resource = test_resource("static_secret");
     let yaml_str = generate_helmrelease(&resource, "akeyless", &FluxCdConfig::default());
-    let doc: Value = serde_yaml_ng::from_str(&yaml_str).expect("HelmRelease must be valid YAML");
+    let doc: Value = serde_norway::from_str(&yaml_str).expect("HelmRelease must be valid YAML");
 
     assert_eq!(doc["apiVersion"], "helm.toolkit.fluxcd.io/v2");
     assert_eq!(doc["kind"], "HelmRelease");
@@ -705,7 +705,7 @@ fn fluxcd_kustomization_lists_all_resources_sorted() {
     ];
     let yaml_str = generate_kustomization(&resources);
     let doc: Value =
-        serde_yaml_ng::from_str(&yaml_str).expect("kustomization must be valid YAML");
+        serde_norway::from_str(&yaml_str).expect("kustomization must be valid YAML");
 
     assert_eq!(doc["apiVersion"], "kustomize.config.k8s.io/v1beta1");
     assert_eq!(doc["kind"], "Kustomization");
@@ -891,7 +891,7 @@ fn fluxcd_end_to_end_write_to_disk() {
 fn generated_values_have_ports_section() {
     let resource = test_resource("ports_test");
     let yaml = generate_values_yaml(&resource);
-    let parsed: helm_forge::ValuesYaml = serde_yaml_ng::from_str(&yaml).unwrap();
+    let parsed: helm_forge::ValuesYaml = serde_norway::from_str(&yaml).unwrap();
     assert_eq!(parsed.ports.len(), 1);
     assert_eq!(parsed.ports[0].name, "http");
     assert_eq!(parsed.ports[0].container_port, 8080);
@@ -902,7 +902,7 @@ fn generated_values_have_ports_section() {
 fn generated_values_have_service_section() {
     let resource = test_resource("svc_test");
     let yaml = generate_values_yaml(&resource);
-    let parsed: helm_forge::ValuesYaml = serde_yaml_ng::from_str(&yaml).unwrap();
+    let parsed: helm_forge::ValuesYaml = serde_norway::from_str(&yaml).unwrap();
     assert_eq!(parsed.service.service_type, "ClusterIP");
     assert_eq!(parsed.service.ports.len(), 1);
     assert_eq!(parsed.service.ports[0].port, 80);
@@ -915,7 +915,7 @@ fn generated_values_have_service_section() {
 fn default_image_repository_is_not_empty() {
     let resource = test_resource("img_test");
     let yaml = generate_values_yaml(&resource);
-    let parsed: helm_forge::ValuesYaml = serde_yaml_ng::from_str(&yaml).unwrap();
+    let parsed: helm_forge::ValuesYaml = serde_norway::from_str(&yaml).unwrap();
     assert_eq!(parsed.image.repository, "ghcr.io/pleme-io/placeholder");
     assert!(!parsed.image.repository.is_empty());
 }
